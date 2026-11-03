@@ -47,4 +47,4 @@ Todo el contenido está en el bloque `SYS`, al principio del `<script>` de `inde
 
 “Web interactiva para repasar el sistema ATC, nivel 1, nivel 2 y algunos principios activos comunes” por Pablo A. Sendra Lleó (2026), disponible bajo licencia [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es).
 
-Este material fue desarrollado con la asistencia del modelo de inteligencia artificial [Claude (Anthropic)](https://claude.ai/).
+Este material fue desarrollado con la asistencia del modelo de inteligencia artificial [Claude (Anthropic)](https://claude.ai/). 
