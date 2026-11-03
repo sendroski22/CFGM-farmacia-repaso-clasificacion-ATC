@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Repaso ATC</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: una columna tipo "mostrador de farmacia": cabecera con un código ATC desglosado, panel de selección y la pregunta como ficha. */
+:root{
+  --bg:#F2F6F5; --surface:#FFFFFF; --sunken:#E6EEEC; --ink:#13302B; --muted:#52706A; --line:#CFDDD9;
+  --accent:#17807A; --accent-ink:#FFFFFF; --accent-soft:#D5EDEA;
+  --hot:#D2601A; --hot-soft:#FBE6D8;
+  --ok:#22804A; --ok-soft:#DCF1E3; --bad:#B6352A; --bad-soft:#F8DFDB;
+  --chipL:42%; --chipS:50%; --chipInk:#FFFFFF;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1716; --surface:#152321; --sunken:#1C2D2A; --ink:#E2EDEA; --muted:#97B0AA; --line:#2A3F3B;
+    --accent:#4CC2B5; --accent-ink:#0A1A18; --accent-soft:#1D3A36;
+    --hot:#F0904E; --hot-soft:#3A2618;
+    --ok:#62C97A; --ok-soft:#173527; --bad:#F07264; --bad-soft:#3C1E1A;
+    --chipL:62%; --chipS:48%; --chipInk:#0E1716;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1716; --surface:#152321; --sunken:#1C2D2A; --ink:#E2EDEA; --muted:#97B0AA; --line:#2A3F3B;
+  --accent:#4CC2B5; --accent-ink:#0A1A18; --accent-soft:#1D3A36;
+  --hot:#F0904E; --hot-soft:#3A2618;
+  --ok:#62C97A; --ok-soft:#173527; --bad:#F07264; --bad-soft:#3C1E1A;
+  --chipL:62%; --chipS:48%; --chipInk:#0E1716;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:780px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible+span,summary:focus-visible{outline:3px solid var(--hot);outline-offset:2px}
+
+/* Cabecera */
+.top{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.top h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:800;letter-spacing:-.02em}
+.top h1 em{font-style:normal;color:var(--accent)}
+.toprow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.toprow>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.curlink{align-self:flex-start;background:none;border:0;padding:0;color:var(--accent);font-weight:700;font-size:.9rem;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.curlink:hover{text-decoration-thickness:2px}
+.theme{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.theme button{background:none;border:0;padding:6px 10px;font-size:.82rem;font-weight:700;color:var(--muted)}
+.theme button+button{border-left:1px solid var(--line)}
+.theme button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+dialog.cur{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--ink);padding:0;width:min(640px,calc(100vw - 32px));max-height:calc(100vh - 48px)}
+dialog.cur::backdrop{background:rgba(10,25,22,.55)}
+.curin{padding:22px;display:flex;flex-direction:column;gap:16px}
+.curhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.curhead h2{font-size:1.35rem}
+.x{flex:none;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:1.2rem;line-height:1}
+.ladder{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.ladder>li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.ladder>li:last-child{border-bottom:0}
+.ladder .k{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;padding-top:3px}
+.ladder .v{min-width:0}
+.ce{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.ce li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px}
+.ce b.c{font-family:var(--f-mono);color:var(--hot)}
+.ce .how{grid-column:2;font-size:.86rem;color:var(--muted)}
+@media (max-width:520px){.ladder>li{grid-template-columns:1fr}}
+.code{display:flex;gap:4px;font-family:var(--f-mono);overflow-x:auto}
+.code .seg{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.code .seg b{display:block;padding:6px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--line);font-size:clamp(1.1rem,4.5vw,1.6rem);font-weight:700;letter-spacing:.04em}
+.code .seg:nth-child(1) b{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.code .seg small{font-family:var(--f-body);font-size:.68rem;color:var(--muted);text-align:center;line-height:1.2}
+
+/* Pestañas */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;padding:10px 14px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--hot)}
+
+/* Selección */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-size:1.25rem}
+.step{display:flex;flex-direction:column;gap:10px}
+.step>.lbl{font-size:.78rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.block{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+.block input{width:20px;height:20px;accent-color:var(--accent);margin:2px 0 0;flex:none}
+.block strong{display:block}
+.block span{color:var(--muted);font-size:.9rem}
+.block:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.sysgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.sysbtn{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);text-align:left;font-size:.9rem;line-height:1.25}
+.sysbtn[aria-pressed="true"]{border-color:var(--ink);background:var(--sunken);font-weight:700}
+.sysbtn[aria-pressed="false"] .chip{opacity:.45}
+.chip{flex:none;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:6px;font-family:var(--f-mono);font-weight:700;background:hsl(var(--h) var(--chipS) var(--chipL));color:var(--chipInk)}
+.chip.sm{width:24px;height:24px;font-size:.8rem;border-radius:5px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ghost{background:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.85rem;color:var(--muted)}
+.ghost:hover{color:var(--ink);border-color:var(--ink)}
+.seg-ctl{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg-ctl button{background:var(--surface);border:0;padding:8px 16px;font-weight:700;font-variant-numeric:tabular-nums}
+.seg-ctl button+button{border-left:1px solid var(--line)}
+.seg-ctl button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:.92rem}
+.chk input{accent-color:var(--accent);width:18px;height:18px;margin:0}
+.chk:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.subtle{color:var(--muted);font-size:.9rem}
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:12px 22px;font-weight:700;font-size:1.02rem}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.secondary{background:var(--surface);border:1px solid var(--ink);border-radius:8px;padding:11px 18px;font-weight:700}
+.warn{color:var(--bad);font-weight:700;font-size:.9rem}
+
+/* Pregunta */
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.count{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
+.bar{height:6px;background:var(--sunken);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--hot);transition:width .3s}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:16px}
+.tag{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;color:var(--muted)}
+.kicker{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--hot);font-weight:700}
+.qtitle{font-family:var(--f-display);font-size:clamp(1.3rem,4.6vw,1.65rem);font-weight:700;line-height:1.2;text-wrap:balance}
+.qtitle.long{font-family:var(--f-body);font-size:1.12rem;font-weight:700;line-height:1.4}
+.qprompt{color:var(--muted);font-size:1rem}
+.qcode{font-family:var(--f-mono);font-size:1.5rem;font-weight:700;letter-spacing:.06em;display:flex;gap:2px;flex-wrap:wrap}
+.qcode span{padding:2px 4px;border-radius:4px}
+.qcode .hl{background:var(--hot);color:var(--surface)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);line-height:1.35}
+.opt .k{flex:none;font-family:var(--f-mono);font-weight:700;color:var(--muted);width:1.2em}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt:disabled{cursor:default}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft)}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.opt.dim{opacity:.55}
+.vf{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vf .opt{justify-content:center;font-weight:700;font-size:1.05rem;padding:16px}
+.letters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.letters .opt{justify-content:center;font-family:var(--f-mono);font-size:1.6rem;font-weight:700;padding:14px}
+.fb{border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.fb.ok{background:var(--ok-soft);border:1px solid var(--ok)}
+.fb.bad{background:var(--bad-soft);border:1px solid var(--bad)}
+.fb .v{font-weight:700}
+.fb.ok .v{color:var(--ok)} .fb.bad .v{color:var(--bad)}
+.next{align-self:flex-end}
+
+/* Relacionar */
+.match{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.mcol h4{margin:0;font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.mi{position:relative;text-align:left;padding:10px 10px 10px 38px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:.92rem;line-height:1.3;min-height:48px;overflow-wrap:anywhere}
+.mi .n{position:absolute;left:8px;top:10px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-mono);font-size:.78rem;font-weight:700;border:1px dashed var(--line);color:var(--muted)}
+.mi.paired .n{border:0;background:var(--ink);color:var(--bg)}
+.mi.sel{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot)}
+.mi.ok{border-color:var(--ok);background:var(--ok-soft)}
+.mi.bad{border-color:var(--bad);background:var(--bad-soft)}
+.mi .fix{display:block;margin-top:6px;font-size:.82rem;color:var(--bad);font-weight:700}
+.mhelp{font-size:.88rem;color:var(--muted)}
+
+/* Resultados */
+.score{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.score .big{font-family:var(--f-display);font-size:3.2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.score .pct{font-family:var(--f-mono);font-size:1.2rem;color:var(--muted)}
+.bkt{display:flex;flex-direction:column;gap:6px}
+.bkt .r{display:grid;grid-template-columns:minmax(0,1fr) 120px 56px;gap:10px;align-items:center;font-size:.92rem}
+.bkt .r .m{height:8px;background:var(--sunken);border-radius:99px;overflow:hidden}
+.bkt .r .m i{display:block;height:100%;background:var(--accent)}
+.bkt .r .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.miss{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.miss li{border-left:3px solid var(--bad);padding:4px 0 4px 12px;font-size:.93rem}
+.miss li .a{color:var(--ok);font-weight:700}
+.stats{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.stats li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.stats li:last-child{border-bottom:0}
+.stats .q{font-size:.93rem;line-height:1.35;min-width:0;overflow-wrap:anywhere}
+.stats .q small{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.78rem;margin-top:3px;flex-wrap:wrap}
+.stats .nums{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:.85rem;white-space:nowrap}
+.stats .meter{width:72px;height:6px;background:var(--sunken);border-radius:99px;overflow:hidden}
+.stats .meter i{display:block;height:100%;background:var(--bad)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.74rem;font-weight:700}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.confirm{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Tablas de repaso */
+details.sys{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+details.sys summary{display:flex;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;font-weight:700;list-style:none}
+details.sys summary::-webkit-details-marker{display:none}
+details.sys summary::after{content:"+";margin-left:auto;font-family:var(--f-mono);color:var(--muted);font-size:1.2rem}
+details.sys[open] summary::after{content:"–"}
+.sysdesc{padding:0 14px 10px;color:var(--muted);font-size:.92rem}
+.tbl{overflow-x:auto;padding:0 14px 14px}
+.tbl table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem}
+.tbl th{text-align:left;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td:first-child{font-weight:700;width:30%}
+.tbl td:last-child{width:28%}
+.note{background:var(--hot-soft);border-radius:8px;padding:14px 16px;font-size:.93rem;display:flex;flex-direction:column;gap:6px}
+.note ul{margin:0;padding-left:20px}
+.lvtbl{overflow-x:auto}
+.lvtbl table{border-collapse:collapse;width:100%;min-width:480px;font-size:.92rem}
+.lvtbl td,.lvtbl th{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.lvtbl th{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.lvtbl td.c{font-family:var(--f-mono);font-weight:700}
+footer{color:var(--muted);font-size:.82rem;text-align:center;border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:6px}
+footer p{margin:0;max-width:62ch;margin-inline:auto}
+footer a{color:var(--accent);font-weight:700}
+
+@media (max-width:520px){
+  .match{grid-template-columns:1fr 1fr;gap:6px}
+  .mi{font-size:.84rem;padding:8px 6px 8px 32px}
+  .mi .n{left:5px;width:20px;height:20px}
+  .bkt .r{grid-template-columns:minmax(0,1fr) 70px 50px}
+  .qcard,.panel{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="toprow">
+      <div>
+        <div class="eyebrow">CFGM Farmacia · Dispensación de productos farmacéuticos · UD 3</div>
+        <button class="curlink" id="curopen" aria-haspopup="dialog">Ver relación curricular</button>
+      </div>
+      <div class="theme" role="group" aria-label="Tema de color">
+        <button data-t="auto" aria-pressed="true" title="Usar el tema del navegador">Auto</button>
+        <button data-t="light" aria-pressed="false">Claro</button>
+        <button data-t="dark" aria-pressed="false">Oscuro</button>
+      </div>
+    </div>
+    <h1>Repaso <em>ATC</em></h1>
+    <div class="code" aria-label="Ejemplo de código ATC desglosado: A10BA02">
+      <div class="seg"><b>A</b><small>Anatómico</small></div>
+      <div class="seg"><b>10</b><small>Terapéutico</small></div>
+      <div class="seg"><b>B</b><small>Subgrupo</small></div>
+      <div class="seg"><b>A</b><small>Químico</small></div>
+      <div class="seg"><b>02</b><small>Principio activo</small></div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-practica" aria-selected="true">Practicar</button>
+    <button role="tab" id="tab-tablas" aria-selected="false">Tablas de repaso</button>
+  </nav>
+
+  <main id="view"></main>
+
+  <dialog class="cur" id="cur" aria-labelledby="cur-h">
+    <div class="curin">
+      <div class="curhead"><h2 id="cur-h">Relación curricular</h2><button class="x" id="curclose" aria-label="Cerrar">×</button></div>
+      <ul class="ladder">
+        <li><span class="k">Ciclo</span><span class="v">CFGM Farmacia y Parafarmacia</span></li>
+        <li><span class="k">Módulo</span><span class="v">0101 - Dispensación de productos farmacéuticos</span></li>
+        <li><span class="k">Resultado de aprendizaje</span><span class="v"><b>RA 2.</b> Dispensa medicamentos relacionándolos con las aplicaciones terapéuticas y las condiciones de uso.</span></li>
+        <li><span class="k">Criterios de evaluación</span><span class="v">
+          <ul class="ce">
+            <li><b class="c">2.a)</b><span>Se han descrito las clasificaciones anatómico-terapéuticas de los medicamentos.</span></li>
+            <li><b class="c">2.b)</b><span>Se han identificado los principios activos más representativos relacionándolos con las aplicaciones terapéuticas.</span></li>
+            <li><b class="c">2.c)</b><span>Se han relacionado los grupos terapéuticos con lugar de acción, principales aplicaciones, condiciones de uso y efecto producido.</span></li>
+          </ul></span></li>
+      </ul>
+    </div>
+  </dialog>
+
+  <footer>
+    <p>“Web interactiva para repasar el sistema ATC, nivel 1, nivel 2 y algunos principios activos comunes” por Pablo A. Sendra Lleó (2026), disponible bajo licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license noopener" target="_blank">CC BY-NC-SA 4.0</a>.</p>
+    <p>Este material fue desarrollado con la asistencia del modelo de inteligencia artificial <a href="https://claude.ai/" rel="noopener" target="_blank">Claude (Anthropic)</a>.</p>
+  </footer>
+</div>
+
+<script>
+/* =====================================================================
+   DATOS — se pueden ampliar aquí sin tocar el resto del código.
+   Cada sistema: letra (l), nombre (n), nombre corto (c), descripción (d)
+   y sus grupos terapéuticos (g): id interno (nunca se muestra), nombre (n),
+   para qué sirve (u) y ejemplos de principios activos (ex).
+   ===================================================================== */
+const SYS = [
+ {l:'A',h:28,n:'Tracto alimentario y metabolismo',c:'Alimentario y metabolismo',d:'Medicamentos asociados al aparato digestivo: procesamiento del alimento, absorción de nutrientes y eliminación de residuos',g:[
+  {id:'A01',n:'Preparados estomatológicos',u:'Tratar afecciones de boca y dientes: caries, candidiasis oral e infecciones bucofaríngeas',ex:['Clorhexidina','Miconazol']},
+  {id:'A02',n:'Antiácidos',u:'Reducir o neutralizar la secreción de jugos gástricos o su efecto',ex:['Omeprazol','Almagato']},
+  {id:'A04',n:'Antieméticos',u:'Impedir o controlar el vómito y las náuseas (embarazo, quimioterapia)',ex:[]},
+  {id:'A05',n:'Terapia biliar y hepática',u:'Tratar el hígado y la vesícula biliar',ex:[]},
+  {id:'A06',n:'Laxantes',u:'Estimular la evacuación intestinal y disminuir la consistencia de las heces',ex:['Glicerol (supositorios)']},
+  {id:'A07',n:'Antidiarreicos, antiinflamatorios y antiinfecciosos intestinales',u:'Reducir el peristaltismo y regular la hipersecreción de agua en el intestino',ex:['Loperamida (Fortasec)']},
+  {id:'A09',n:'Digestivos',u:'Aliviar alteraciones digestivas como aerofagia, flatulencia o mala digestión de nutrientes',ex:['Lactasa']},
+  {id:'A10',n:'Antidiabéticos',u:'Tratar la diabetes (insulinas o hipoglucemiantes orales)',ex:['Metformina','Insulinas']}]},
+ {l:'B',h:355,n:'Sangre y órganos hematopoyéticos',c:'Sangre',d:'Prevenir y tratar problemas relacionados con la sangre, por ejemplo obstrucciones de vasos sanguíneos por trombos',g:[
+  {id:'B01',n:'Antitrombóticos',u:'Inhibir la coagulación de la sangre y prevenir la formación de trombos',ex:['Acenocumarol (Sintrom)','Heparinas']},
+  {id:'B02',n:'Antihemorrágicos',u:'Tratar trastornos de la coagulación de tipo hemorrágico',ex:['Vitamina K']},
+  {id:'B03',n:'Preparados antianémicos',u:'Tratar estados anémicos',ex:['Preparados con hierro','Ácido fólico']}]},
+ {l:'C',h:330,n:'Sistema cardiovascular',c:'Cardiovascular',d:'Tratar afecciones del corazón o de los vasos sanguíneos',g:[
+  {id:'C01',n:'Terapia cardíaca',u:'Tratar arritmias y aumentar la fuerza y velocidad de contracción del corazón',ex:['Digoxina']},
+  {id:'C02',n:'Antihipertensivos',u:'Reducir la hipertensión arterial (HTA)',ex:['Doxazosina']},
+  {id:'C03',n:'Diuréticos',u:'Estimular la formación y eliminación de orina y reducir el líquido en sangre',ex:['Furosemida']},
+  {id:'C05',n:'Vasoprotectores',u:'Proteger los vasos sanguíneos por vía tópica (hemorroides, fisuras anales)',ex:[]},
+  {id:'C07',n:'Betabloqueantes',u:'Reducir la frecuencia cardíaca; cardioprotección tras un infarto',ex:['Bisoprolol']},
+  {id:'C08',n:'Bloqueantes de canales de calcio',u:'Relajar las arterias y reducir la presión arterial y la angina de pecho',ex:['Amlodipino']},
+  {id:'C09',n:'Agentes del sistema renina-angiotensina',u:'Tratar la hipertensión y la insuficiencia cardíaca',ex:['Enalapril']},
+  {id:'C10',n:'Hipolipemiantes',u:'Reducir los lípidos en sangre, sobre todo el colesterol',ex:['Atorvastatina','Simvastatina']}]},
+ {l:'D',h:38,n:'Dermatológicos',c:'Dermatológico',d:'Tratar enfermedades o lesiones de la piel; de aplicación tópica y muchos de venta libre',g:[
+  {id:'D01',n:'Antifúngicos dermatológicos',u:'Tratar infecciones de la piel causadas por hongos (dermatofitos)',ex:['Clotrimazol','Ketoconazol']},
+  {id:'D02',n:'Emolientes y protectores',u:'Hidratar la piel y evitar la sequedad (dermatitis, piel seca)',ex:['Urea (Ureadin)']},
+  {id:'D03',n:'Preparados para heridas y úlceras',u:'Facilitar la cicatrización',ex:['Blastoestimulina']},
+  {id:'D04',n:'Antipruriginosos',u:'Aliviar el picor o escozor',ex:['Calamina']},
+  {id:'D05',n:'Antipsoriásicos',u:'Tratar la psoriasis',ex:['Breas de carbón']},
+  {id:'D06',n:'Antibióticos dermatológicos',u:'Tratar infecciones bacterianas superficiales de la piel (heridas infectadas, quemaduras, impétigo)',ex:['Mupirocina (Bactroban)']},
+  {id:'D07',n:'Corticoesteroides dermatológicos',u:'Acción antiinflamatoria y antipruriginosa en la piel: eccemas leves y dermatitis de contacto',ex:['Hidrocortisona','Metilprednisolona']},
+  {id:'D08',n:'Antisépticos y desinfectantes',u:'Inhibir o destruir el crecimiento de microorganismos',ex:['Clorhexidina','Povidona yodada']}]},
+ {l:'G',h:300,n:'Sistema genitourinario y hormonas sexuales',c:'Genitourinario y h. sexuales',d:'Medicamentos para el sistema genital y urinario, así como hormonas sexuales',g:[
+  {id:'G01',n:'Antiinfecciosos y antisépticos ginecológicos',u:'Tratar infecciones bacterianas o fúngicas de la zona genitourinaria',ex:['Clotrimazol','Metronidazol']},
+  {id:'G02',n:'Otros productos ginecológicos',u:'Inhibidores de prolactina, antiinflamatorios vaginales y anticonceptivos de uso tópico',ex:['Anillo vaginal de etonogestrel y etinilestradiol']},
+  {id:'G03',n:'Hormonas sexuales y moduladores del sistema genital',u:'Regular el ciclo menstrual, anticoncepción hormonal y tratamiento de la menopausia',ex:['Levonorgestrel/etinilestradiol','Progesterona']},
+  {id:'G04',n:'Preparados urológicos',u:'Problemas de vías urinarias: incontinencia, litiasis renal, disfunción eréctil, hiperplasia benigna de próstata',ex:['Tamsulosina','Sildenafilo (Viagra)']}]},
+ {l:'H',h:262,n:'Preparados hormonales sistémicos (excluye hormonas sexuales e insulinas)',c:'Hormonales sistémicos',d:'Tratar glándulas del sistema endocrino, excepto hormonas sexuales e insulinas, que van en otros grupos',g:[
+  {id:'H01',n:'Hormonas hipotalámicas e hipofisarias',u:'Actuar sobre el eje hipotálamo-hipófisis (uso sobre todo hospitalario)',ex:['Somatropina (hormona del crecimiento)']},
+  {id:'H02',n:'Corticoides sistémicos',u:'Antiinflamatorios e inmunosupresores de acción sistémica; regulan el metabolismo hidroelectrolítico y de carbohidratos',ex:['Prednisona (Dacortin)','Metilprednisolona (Urbason)']},
+  {id:'H03',n:'Terapia tiroidea',u:'Actuar sobre el metabolismo del yodo y la función tiroidea',ex:['Levotiroxina sódica (Eutirox)']},
+  {id:'H04',n:'Hormonas pancreáticas',u:'Aumentar la glucemia (hiperglucemiantes)',ex:['Glucagón']},
+  {id:'H05',n:'Homeostasis del calcio',u:'Regular los niveles de calcio, por ejemplo en osteoporosis',ex:['Calcitonina']}]},
+ {l:'J',h:205,n:'Antiinfecciosos para uso sistémico',c:'Antiinfecciosos sistémicos',d:'Eliminar agentes infecciosos (bacterias, virus, hongos); también incluye sueros y vacunas con función preventiva',g:[
+  {id:'J01',n:'Antibacterianos de uso sistémico',u:'Eliminar bacterias (bactericidas) o detener su crecimiento (bacteriostáticos)',ex:['Amoxicilina','Amoxicilina + ácido clavulánico','Azitromicina','Fosfomicina']},
+  {id:'J02',n:'Antimicóticos de uso sistémico',u:'Eliminar hongos (fungicidas) o detener su crecimiento (fungiestáticos) en todo el organismo',ex:['Fluconazol','Itraconazol']},
+  {id:'J05',n:'Antivirales de uso sistémico',u:'Inhibir el crecimiento de virus',ex:['Aciclovir (Zovirax)','Oseltamivir (Tamiflu)']},
+  {id:'J06',n:'Sueros inmunes e inmunoglobulinas',u:'Aportar inmunidad inmediata con anticuerpos ya formados',ex:['Inmunoglobulina antitetánica']},
+  {id:'J07',n:'Vacunas',u:'Hacer que el cuerpo fabrique sus propios anticuerpos (prevención)',ex:['Vacuna de la gripe','Vacuna del virus del papiloma humano (VPH)']}]},
+ {l:'L',h:232,n:'Agentes antineoplásicos e inmunomoduladores',c:'Antineoplásicos e inmunomod.',d:'Tratar el crecimiento celular anormal y descontrolado, y modificar la respuesta inmune (activándola o inhibiéndola)',g:[
+  {id:'L01',n:'Agentes antineoplásicos (citostáticos)',u:'Inhibir el crecimiento desordenado de células tumorales',ex:['Imatinib','Palbociclib']},
+  {id:'L02',n:'Terapia endocrina',u:'Tratar tumores dependientes de hormonas (cáncer de mama o de próstata)',ex:['Tamoxifeno','Letrozol','Bicalutamida']},
+  {id:'L03',n:'Inmunoestimulantes',u:'Aumentar la capacidad del sistema inmunitario para combatir infecciones y enfermedades',ex:['Interferón','Interleucinas']},
+  {id:'L04',n:'Inmunosupresores',u:'Deprimir el sistema inmunitario (trasplantes y enfermedades autoinmunes)',ex:['Metotrexato','Ciclosporina']}]},
+ {l:'M',h:12,n:'Sistema musculoesquelético',c:'Musculoesquelético',d:'Sobre todo reducir el dolor (ocasional o crónico) y la inflamación de músculos, huesos y articulaciones',g:[
+  {id:'M01',n:'Antiinflamatorios y antirreumáticos',u:'Aliviar el dolor y disminuir la inflamación osteomuscular; tratar enfermedades reumáticas',ex:['Ibuprofeno','Dexketoprofeno (Enantyum)']},
+  {id:'M02',n:'Tópicos para el dolor articular y muscular',u:'Aliviar trastornos musculoesqueléticos aplicándolos sobre la piel; no suelen precisar receta',ex:['Diclofenaco dietilamonio (Voltadol)']},
+  {id:'M03',n:'Relajantes musculares',u:'Disminuir la actividad del músculo esquelético (lumbalgia, tortícolis, esguinces)',ex:['Ciclobenzaprina']},
+  {id:'M04',n:'Antigotosos',u:'Tratar la gota (acúmulo excesivo de ácido úrico)',ex:['Alopurinol','Colchicina']},
+  {id:'M05',n:'Fármacos para enfermedades óseas',u:'Aumentar la mineralización de los huesos (osteoporosis)',ex:['Alendronato']}]},
+ {l:'N',h:48,n:'Sistema nervioso',c:'Nervioso',d:'Actúan sobre el sistema nervioso central: alteraciones psíquicas y cognitivas, dolor, convulsiones…',g:[
+  {id:'N01',n:'Anestésicos',u:'Bloquear el impulso nervioso: anestesia general o local (uso hospitalario)',ex:[]},
+  {id:'N02',n:'Analgésicos',u:'Aliviar o calmar el dolor y disminuir la fiebre',ex:['Paracetamol','Metamizol (Nolotil)','Ácido acetilsalicílico']},
+  {id:'N03',n:'Antiepilépticos',u:'Prevenir o interrumpir las convulsiones epilépticas',ex:['Levetiracetam']},
+  {id:'N05',n:'Psicolépticos',u:'Psicotrópicos que deprimen la actividad mental (p. ej. ansiedad)',ex:['Diazepam (Valium)','Alprazolam (Trankimazin)','Lormetazepam']},
+  {id:'N06',n:'Psicoanalépticos',u:'Psicotrópicos que estimulan la actividad mental (p. ej. antidepresivos)',ex:['Sertralina','Metilfenidato']},
+  {id:'N07',n:'Otros fármacos para el sistema nervioso',u:'Fármacos variados: dejar de fumar, vértigos…',ex:['Citisina','Betahistina (Serc)']}]},
+ {l:'P',h:90,n:'Productos antiparasitarios, insecticidas y repelentes',c:'Antiparasitarios',d:'Evitar la entrada de agentes exteriores al organismo o combatirlos si ya han entrado',g:[
+  {id:'P01',n:'Antiprotozoarios',u:'Tratar infecciones por protozoos',ex:['Metronidazol']},
+  {id:'P02',n:'Antihelmínticos',u:'Tratar helmintos (lombrices intestinales)',ex:['Mebendazol']},
+  {id:'P03',n:'Ectoparasiticidas',u:'Tratar parásitos que viven sobre el huésped: piojos, garrapatas, pulgas, ácaros',ex:['Permetrina']}]},
+ {l:'R',h:185,n:'Sistema respiratorio',c:'Respiratorio',d:'Aliviar síntomas de cuadros catarrales o gripales y tratar enfermedades o insuficiencias respiratorias',g:[
+  {id:'R01',n:'Preparados de uso nasal',u:'Descongestionar las vías nasales en procesos catarrales o gripales',ex:['Oximetazolina (Respibien)']},
+  {id:'R02',n:'Preparados para la garganta',u:'Aliviar infecciones leves de boca y garganta (faringitis, amigdalitis)',ex:['Clorhexidina','Benzocaína','Lidocaína']},
+  {id:'R03',n:'Agentes contra obstrucciones de las vías respiratorias',u:'Broncodilatar en pacientes con asma o EPOC',ex:['Salbutamol (Ventolín)']},
+  {id:'R05',n:'Preparados para la tos y el resfriado',u:'Aliviar la tos y expulsar el exceso de mocos (mucolíticos, expectorantes, antitusivos)',ex:['Acetilcisteína','Cloperastina (Flutox)']},
+  {id:'R06',n:'Antihistamínicos de uso sistémico',u:'Tratar alergias (rinitis alérgica, urticaria)',ex:['Desloratadina (Aerius)']}]},
+ {l:'S',h:160,n:'Órganos de los sentidos',c:'Órganos de los sentidos',d:'Medicamentos para el cuidado de los ojos y los oídos',g:[
+  {id:'S01',n:'Oftalmológicos',u:'Tratar enfermedades e infecciones de los ojos',ex:['Tobramicina','Ácido hialurónico']},
+  {id:'S02',n:'Otológicos',u:'Tratar enfermedades del oído o disolver el cerumen',ex:['Ciprofloxacino']}]},
+ {l:'V',h:0,n:'Varios',c:'Varios',d:'Productos que no se pueden clasificar en ninguno de los grupos anteriores',g:[
+  {id:'V01',n:'Alérgenos',u:'Diagnóstico de alergias (pruebas) e inmunoterapia',ex:['Extracto de ácaros del polvo']},
+  {id:'V09',n:'Radiofármacos',u:'Diagnóstico por imagen o tratamientos en medicina nuclear',ex:['Yodo-131']}]}
+];
+/* Principios activos que también aparecen en otros grupos (diapositiva 29) */
+const ALSO = {'ketoconazol':['G01','J02']};
+/* Grupos que se parecen demasiado: nunca se usan como distractor el uno del otro */
+const CONFLICTS = [['C02','C08','C09'],['C01','C07'],['D01','G01','J02'],['D06','J01'],['A01','R02','D08'],['D04','R06'],['M01','M02','N02'],['L04','H02'],['D07','H02'],['G02','G03'],['R01','R05'],['A02','A09']];
+
+const LV = [
+ {n:'Grupo anatómico',f:'Una letra',info:'El órgano o sistema sobre el que actúa'},
+ {n:'Grupo terapéutico',f:'Dos dígitos',info:'La acción terapéutica del medicamento'},
+ {n:'Subgrupo terapéutico',f:'Una letra',info:'Concreta más la acción terapéutica'},
+ {n:'Grupo químico',f:'Una letra',info:'La familia de fármacos con moléculas similares'},
+ {n:'Principio activo o asociación',f:'Dos dígitos',info:'El principio activo o la combinación concreta'}
+];
+const CODES = ['A10BA02','N02BE01','N02BA01','C09AA02','A02BC01','M01AE01','M02AA15','M01AB05','D01AC08','G01AF11','J02AB02'];
+const BADCODES = ['1A0BA02','A10B0A2','AA10B02','A10BA2','A1BA002','A10BAA2','C9AA002','N02BEE1','M01A0E1','N2BE001','AB10A02','A10BA002'];
+const A10 = ['Actúa sobre el tracto alimentario y metabolismo','Es un fármaco para tratar la diabetes','Es un hipoglucemiante oral que no contiene insulina','Es una biguanida','El principio activo es la metformina'];
+
+const ORG_MC = [
+ ['¿Qué significan las siglas ATC?','Anatómico-Terapéutico-Químico',['Analítico-Terapéutico-Clínico','Anatómico-Toxicológico-Clínico','Administración-Tratamiento-Control']],
+ ['¿Cuántos niveles de información tiene un código ATC?','5',['3','4','7']],
+ ['¿Cuántos caracteres tiene un código ATC completo, como A10BA02?','7',['5','6','8']],
+ ['¿Qué criterio de clasificación responde a la pregunta «¿Dónde actúa?»?','Anatómico',['Terapéutico', 'Químico', 'Por fabricante']],
+ ['¿Qué criterio de clasificación responde a la pregunta «¿Para qué sirve?»?','Terapéutico',['Anatómico', 'Químico', 'Por fabricante']],
+ ['¿Qué criterio de clasificación responde a la pregunta «¿Cuál es la molécula?»?','Químico',['Anatómico', 'Terapéutico', 'Por fabricante']],
+ ['Agrupar medicamentos en «sistema nervioso», «dermatológicos» u «oftalmológicos» sigue el criterio…','Anatómico',['Terapéutico', 'Químico', 'Por fabricante']],
+ ['Agrupar medicamentos en «diuréticos», «antihemorrágicos» o «laxantes» sigue el criterio…','Terapéutico',['Anatómico', 'Químico', 'Por fabricante']],
+ ['Agrupar medicamentos en «derivados del ácido salicílico» o «penicilinas» sigue el criterio…','Químico',['Anatómico', 'Terapéutico', 'Por fabricante']],
+ ['¿Qué clasificación integra los criterios anatómico, terapéutico y químico?','La clasificación ATC',['La comercial','La galénica','La de receta']],
+ ['¿Qué nivel se considera especialmente útil porque informa de dónde actúa el medicamento y de su acción terapéutica?','Nivel 2 · Grupo terapéutico',['Nivel 1 · Grupo anatómico','Nivel 4 · Grupo químico','Nivel 5 · Principio activo o asociación']],
+ ['¿Qué nivel del código ATC suele ser el más difícil de interpretar?','Nivel 4 · Grupo químico',['Nivel 1 · Grupo anatómico','Nivel 2 · Grupo terapéutico','Nivel 5 · Principio activo o asociación']],
+ ['El ketoconazol tiene los códigos D01AC08, G01AF11 y J02AB02. ¿Qué nos indica esto?','Un mismo principio activo puede tener varios códigos ATC',['Que son tres principios activos distintos con igual nombre comercial','Que cada laboratorio asigna su propio código ATC al medicamento','Que dos de los tres códigos están mal escritos']],
+ ['¿Qué base de datos de medicamentos pertenece a la AEMPS?','CIMA',['BOT Plus','Vademecum','ATC']],
+ ['¿Qué base de datos pertenece al Consejo General de Colegios Oficiales de Farmacéuticos?','BOT Plus',['CIMA','AEMPS','SNS']],
+ ['¿Para qué nos sirve identificar los medicamentos con la nomenclatura técnica?','Elegir el producto correcto y sustituirlo por equivalentes',['Fijar el precio de venta al público del medicamento en la farmacia','Saber qué laboratorio lo fabrica y en qué país','Calcular la dosis exacta que necesita cada paciente']],
+ ['En la ficha técnica de un medicamento en CIMA, ¿qué dos datos buscamos para clasificarlo?','La indicación terapéutica y el código ATC',['El precio y el laboratorio','El color del envase y el lote','La caducidad y el lote']]
+];
+const ORG_VF = [
+ ['La clasificación ATC integra los criterios anatómico, terapéutico y químico.',true,'Cada criterio por separado sería suficiente, pero combinados dan información más detallada.'],
+ ['El sistema ATC es un sistema europeo de codificación de medicamentos.',true,'Así se define en los apuntes.'],
+ ['El nivel 2 del código ATC se codifica con una letra.',false,'El nivel 2 (grupo terapéutico) se codifica con dos dígitos.'],
+ ['El nivel 3 del código ATC se codifica con una letra.',true,'Nivel 3 = subgrupo terapéutico = una letra.'],
+ ['El nivel 4 indica el grupo químico.',true,'Agrupa fármacos con moléculas similares.'],
+ ['El nivel 5 se codifica con dos dígitos.',true,'Los dos últimos dígitos identifican el principio activo.'],
+ ['El nivel 1 se codifica con dos dígitos.',false,'El nivel 1 es una sola letra: el grupo anatómico.'],
+ ['Un mismo principio activo siempre tiene un único código ATC.',false,'Puede tener varios: el ketoconazol aparece en D, G y J según su uso.'],
+ ['El ketoconazol puede aparecer en grupos anatómicos distintos según su uso.',true,'D (dermatológico), G (ginecológico) y J (sistémico).'],
+ ['El código A10BA02 corresponde a la metformina.',true,'A alimentario · 10 diabetes · B hipoglucemiante oral · A biguanida · 02 metformina.'],
+ ['El nivel 1 (grupo anatómico) se codifica con una sola letra.',true,'Por ejemplo, la A de A10BA02 indica tracto alimentario y metabolismo.'],
+ ['El nivel 1 del ATC tiene 14 grupos anatómicos.',true,'A, B, C, D, G, H, J, L, M, N, P, R, S y V.'],
+ ['La letra del nivel 1 suele coincidir con la inicial en inglés del grupo.',true,'Por ejemplo, A de Alimentary y B de Blood.'],
+ ['El nivel 4 suele ser el más fácil de interpretar.',false,'Al contrario: el grupo químico suele ser el más difícil de interpretar.'],
+ ['El nivel 2 es especialmente útil porque informa de dónde actúa el medicamento y de su acción terapéutica.',true,'Combina la letra del sistema con el grupo terapéutico.'],
+ ['CIMA es el centro de información online de medicamentos de la AEMPS.',true,'Es la base de datos oficial de la Agencia Española de Medicamentos.'],
+ ['BOT Plus solo existe en versión de pago.',false,'Tiene una versión gratuita (Lite).'],
+ ['Cada nivel del código ATC añade caracteres al nivel anterior.',true,'Por eso se habla de código acumulado: A → A10 → A10B → A10BA → A10BA02.'],
+ ['El criterio terapéutico responde a la pregunta «¿Dónde actúa?».',false,'«¿Dónde actúa?» es el criterio anatómico; el terapéutico responde a «¿Para qué sirve?».'],
+ ['El criterio químico tiene en cuenta la estructura química del principio activo.',true,'Responde a «¿Cuál es la molécula?».'],
+ ['Un código ATC completo tiene 5 caracteres.',false,'Tiene 7 caracteres repartidos en 5 niveles.']
+];
+const N1_VF = [
+ ['Las insulinas se clasifican en el grupo H (preparados hormonales sistémicos).',false,'El grupo H excluye las insulinas: van en A (antidiabéticos).'],
+ ['Las hormonas sexuales se clasifican en el grupo H.',false,'El grupo H las excluye: van en G (genitourinario y hormonas sexuales).'],
+ ['Las vacunas se clasifican en el grupo J.',true,'J incluye sueros y vacunas con función preventiva.'],
+ ['El grupo V reúne los productos que no encajan en ningún otro grupo.',true,'V = Varios.'],
+ ['El grupo L incluye los inmunomoduladores.',true,'L = agentes antineoplásicos e inmunomoduladores.'],
+ ['Los medicamentos del grupo D suelen ser de aplicación tópica.',true,'Y muchos de ellos son de venta libre.']
+];
+
+/* =====================================================================
+   UTILIDADES
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+const pick=a=>a[Math.random()*a.length|0];
+const coin=()=>Math.random()<.5;
+const key=d=>d.replace(/\s*\(.*?\)\s*/g,'').trim().toLowerCase();
+function take(lists,n,keyf,used=new Set()){const out=[];for(const l of lists){for(const x of shuffle(l)){if(out.length>=n)return out;const k=keyf(x);if(used.has(k))continue;used.add(k);out.push(x);}}return out;}
+
+const BY={},G={},ALLG=[],DG={};
+for(const s of SYS){BY[s.l]=s;for(const g of s.g){g.sys=s.l;G[g.id]=g;ALLG.push(g);for(const d of g.ex){(DG[key(d)]??=new Set()).add(g.id);}}}
+for(const [k,ids] of Object.entries(ALSO)) for(const id of ids) (DG[k]??=new Set()).add(id);
+const conflict=(a,b)=>a===b||CONFLICTS.some(c=>c.includes(a)&&c.includes(b));
+const sysLabel=l=>`${l} · ${BY[l].n}`;
+const chip=(l,sm)=>`<span class="chip${sm?' sm':''}" style="--h:${BY[l].h}">${l}</span>`;
+const ALLDRUGS=ALLG.flatMap(g=>g.ex.map(d=>({d,g})));
+const NOT_LETTERS=['E','F','I','K','O','Q','T','U','W','X','Y','Z'];
+
+function mc(o){const opts=shuffle([o.correct,...o.wrong]);return Object.assign({type:'mc'},o,{options:opts,answer:opts.indexOf(o.correct)});}
+function vf(o){return Object.assign({type:'vf'},o);}
+
+/* =====================================================================
+   GENERADORES — NIVEL 2
+   ===================================================================== */
+function gExplain(g){return `<b>${esc(g.n)}</b> · grupo ${g.sys} (${esc(BY[g.sys].n)}). Sirven para: ${esc(g.u)}.`+(g.ex.length?` Ejemplos: ${esc(g.ex.join(', '))}.`:'');}
+function drugNote(d,g){const ids=[...(DG[key(d)]||[])].filter(id=>id!==g.id);if(!ids.length)return '';return ` <br><b>Ojo:</b> ${esc(key(d).replace(/^./,c=>c.toUpperCase()))} también aparece en ${ids.map(id=>`${esc(G[id].n)} (${G[id].sys})`).join(' y en ')}.`;}
+function distractGroups(g,dk){const ok=x=>!conflict(g.id,x.id)&&!(dk&&DG[dk]?.has(x.id));return [BY[g.sys].g.filter(ok),ALLG.filter(x=>x.sys!==g.sys&&ok(x))];}
+function distractDrugs(g){const ok=({d,g:x})=>x.id!==g.id&&![...(DG[key(d)]||[])].some(id=>conflict(id,g.id));const all=ALLDRUGS.filter(ok);return [all.filter(x=>x.g.sys===g.sys),all.filter(x=>x.g.sys!==g.sys)];}
+
+function poolN2(l,selected){
+ const s=BY[l],out=[],tag=`n2:${l}`;
+ for(const g of s.g){
+  const E=gExplain(g);
+  out.push({kind:'mc',subj:g.id,make:()=>mc({kicker:'Grupo terapéutico',title:g.n,prompt:'¿Para qué sirve este grupo?',correct:g.u,wrong:take(distractGroups(g),3,x=>x.u,new Set([g.u])).map(x=>x.u),explain:E})});
+  out.push({kind:'mc',subj:g.id,make:()=>mc({kicker:'¿Qué grupo terapéutico…?',title:g.u,long:true,prompt:'¿Qué grupo terapéutico sirve para esto?',correct:g.n,wrong:take(distractGroups(g),3,x=>x.n,new Set([g.n])).map(x=>x.n),explain:E})});
+  out.push({kind:'mc',subj:g.id,make:()=>mc({kicker:'Grupo terapéutico',title:g.n,noHint:true,prompt:'¿En qué grupo anatómico (nivel 1) se clasifica?',correct:sysLabel(l),wrong:shuffle(SYS.filter(x=>x.l!==l)).slice(0,3).map(x=>sysLabel(x.l)),explain:E})});
+  out.push({kind:'vf',subj:g.id,make:()=>{const t=coin();const u=t?g.u:take(distractGroups(g),1,x=>x.u)[0].u;return vf({kicker:'Verdadero o falso',statement:`El grupo <b>${esc(g.n)}</b> sirve para: ${esc(u.charAt(0).toLowerCase()+u.slice(1))}.`,answer:t,explain:E});}});
+  out.push({kind:'vf',subj:g.id,make:()=>{const t=coin();const L=t?l:pick(SYS.filter(x=>x.l!==l)).l;return vf({kicker:'Verdadero o falso',statement:`El grupo terapéutico <b>${esc(g.n)}</b> se clasifica en el grupo anatómico <b>${L}</b> (${esc(BY[L].n)}).`,noHint:true,answer:t,explain:E});}});
+  for(const d of g.ex){
+   const dk=key(d);const N=drugNote(d,g);
+   out.push({kind:'mc',subj:g.id,make:()=>mc({kicker:'Principio activo',title:d,prompt:'¿A qué grupo terapéutico pertenece?',correct:g.n,wrong:take(distractGroups(g,dk),3,x=>x.n,new Set([g.n])).map(x=>x.n),explain:E+N})});
+   out.push({kind:'mc',subj:g.id,make:()=>mc({kicker:'Grupo terapéutico',title:g.n,prompt:'¿Cuál de estos principios activos es un ejemplo de este grupo?',correct:d,wrong:take(distractDrugs(g),3,x=>key(x.d),new Set([dk])).map(x=>x.d),explain:E+N})});
+   out.push({kind:'mc',subj:g.id,make:()=>{const sysOf=new Set([...DG[dk]].map(id=>G[id].sys));return mc({kicker:'Principio activo',title:d,noHint:true,prompt:'¿En qué grupo anatómico (nivel 1) se clasifica?',correct:sysLabel(l),wrong:shuffle(SYS.filter(x=>!sysOf.has(x.l))).slice(0,3).map(x=>sysLabel(x.l)),explain:E+N});}});
+   out.push({kind:'vf',subj:g.id,make:()=>{const t=coin();const w=t?g:take(distractGroups(g,dk),1,x=>x.id)[0];return vf({kicker:'Verdadero o falso',statement:`<b>${esc(d)}</b> es un ejemplo del grupo <b>${esc(w.n)}</b>.`,answer:t,explain:E+N});}});
+  }
+ }
+ // Relacionar: dentro del sistema si hay suficientes grupos; si no, se completa con los sistemas elegidos
+ const own=s.g, others=ALLG.filter(x=>x.sys!==l&&selected.includes(x.sys)), rest=ALLG.filter(x=>x.sys!==l);
+ for(let i=0;i<3;i++) out.push({kind:'match',subj:'md'+i,make:()=>matchDrugs(own,others.length?others:rest)});
+ for(let i=0;i<2;i++) out.push({kind:'match',subj:'mu'+i,make:()=>matchUtil(own,others.length?others:rest)});
+ return out;
+}
+function chooseGroups(primary,secondary,n,needEx){
+ const chosen=[];
+ for(const list of [shuffle(primary),shuffle(secondary)]) for(const g of list){
+  if(chosen.length>=n)break;
+  if(needEx&&!g.ex.length)continue;
+  if(chosen.some(c=>conflict(c.id,g.id)))continue;
+  chosen.push(g);
+ }
+ return chosen;
+}
+function matchDrugs(primary,secondary){
+ const want=primary.filter(g=>g.ex.length).length>=4?4:Math.max(3,Math.min(4,primary.filter(g=>g.ex.length).length));
+ const groups=chooseGroups(primary,secondary,want,true);
+ const pairs=[];
+ for(const g of groups){const ids=new Set(groups.map(x=>x.id));const opts=shuffle(g.ex).filter(d=>[...DG[key(d)]].every(id=>id===g.id||!ids.has(id)));if(opts.length)pairs.push({a:opts[0],b:g.n,g});}
+ if(pairs.length<3)return null;
+ return buildMatch('Relaciona cada principio activo con su grupo terapéutico','Principio activo','Grupo terapéutico',pairs);
+}
+function matchUtil(primary,secondary){
+ const groups=chooseGroups(primary,secondary,4,false);
+ if(groups.length<3)return null;
+ return buildMatch('Relaciona cada grupo terapéutico con su utilidad','Grupo terapéutico','Para qué sirve',groups.map(g=>({a:g.n,b:g.u,g})));
+}
+function buildMatch(prompt,la,lb,pairs){
+ pairs=shuffle(pairs);
+ const right=shuffle(pairs.map((p,i)=>i));
+ return {type:'match',kicker:'Relacionar',prompt,la,lb,left:pairs.map(p=>p.a),right:right.map(i=>pairs[i].b),sol:pairs.map((p,i)=>right.indexOf(i)),
+  explain:pairs.map(p=>`<b>${esc(p.a)}</b> → ${esc(p.b)}${p.g?` (${p.g.sys})`:''}`).join('<br>')};
+}
+
+/* =====================================================================
+   GENERADORES — NIVEL 1
+   ===================================================================== */
+function poolN1(){
+ const out=[];
+ for(const s of SYS){
+  const E=`<b>${s.l}</b> = ${esc(s.n)}. ${esc(s.d)}.`+(s.l==='A'?' (A de <i>Alimentary</i>)':s.l==='B'?' (B de <i>Blood</i>)':'');
+  const others=()=>shuffle(SYS.filter(x=>x.l!==s.l));
+  out.push({kind:'mc',subj:s.l,make:()=>mc({kicker:'Nivel 1 · Grupo anatómico',title:`Letra ${s.l}`,big:s.l,prompt:'¿Qué grupo anatómico indica esta letra?',correct:s.n,wrong:others().slice(0,3).map(x=>x.n),explain:E})});
+  out.push({kind:'mc',subj:s.l,make:()=>mc({kicker:'Nivel 1 · Grupo anatómico',title:s.n,prompt:'¿Con qué letra se codifica este grupo anatómico?',letters:true,correct:s.l,wrong:others().slice(0,3).map(x=>x.l),explain:E})});
+  out.push({kind:'mc',subj:s.l,make:()=>mc({kicker:'Nivel 1 · Descripción',title:s.d,long:true,prompt:'¿A qué grupo anatómico corresponde esta descripción?',correct:sysLabel(s.l),wrong:others().slice(0,3).map(x=>sysLabel(x.l)),explain:E})});
+  out.push({kind:'vf',subj:s.l,make:()=>{const t=coin(),w=t?s:others()[0];return vf({kicker:'Verdadero o falso',statement:`La letra <b>${s.l}</b> del nivel 1 corresponde a: ${esc(w.n)}.`,answer:t,explain:E});}});
+  out.push({kind:'vf',subj:s.l,make:()=>{const t=coin(),w=t?s:others()[0];return vf({kicker:'Verdadero o falso',statement:`El grupo «${esc(s.n)}» se codifica con la letra <b>${w.l}</b>.`,answer:t,explain:E});}});
+ }
+ for(let i=0;i<5;i++) out.push({kind:'mc',subj:'inv',make:()=>{const bad=pick(NOT_LETTERS);return mc({kicker:'Nivel 1',title:'¿Cuál de estas letras NO corresponde a ningún grupo anatómico?',long:true,prompt:'Los grupos son A, B, C, D, G, H, J, L, M, N, P, R, S y V… ¡sin mirar!',letters:true,correct:bad,wrong:shuffle(SYS).slice(0,3).map(x=>x.l),explain:`La <b>${bad}</b> no se usa. Las 14 letras del nivel 1 son A, B, C, D, G, H, J, L, M, N, P, R, S y V.`});}});
+ N1_VF.forEach((v,i)=>out.push({kind:'vf',subj:'s'+i,make:()=>vf({kicker:'Verdadero o falso',statement:esc(v[0]),answer:v[1],explain:esc(v[2])})}));
+ for(let i=0;i<4;i++) out.push({kind:'match',subj:'m'+i,make:()=>buildMatch('Relaciona cada letra con su grupo anatómico','Letra','Grupo anatómico',shuffle(SYS).slice(0,5).map(s=>({a:s.l,b:s.n})))});
+ return out;
+}
+
+/* =====================================================================
+   GENERADORES — ORGANIZACIÓN DEL SISTEMA ATC
+   ===================================================================== */
+function codeHTML(c,k){const p=[c.slice(0,1),c.slice(1,3),c.slice(3,4),c.slice(4,5),c.slice(5,7)];return `<div class="qcode">${p.map((x,i)=>`<span class="${i===k?'hl':''}">${x}</span>`).join('')}</div>`;}
+function poolOrg(){
+ const out=[];
+ ORG_MC.forEach((q,i)=>out.push({kind:'mc',subj:'om'+i,make:()=>mc({kicker:'Organización ATC',title:q[0],long:true,prompt:'',correct:q[1],wrong:q[2],explain:esc(`Respuesta: ${q[1]}.`)})}));
+ ORG_VF.forEach((v,i)=>out.push({kind:'vf',subj:'ov'+i,make:()=>vf({kicker:'Verdadero o falso',statement:esc(v[0]),answer:v[1],explain:esc(v[2])})}));
+ const lvName=k=>`Nivel ${k+1} · ${LV[k].n}`;
+ LV.forEach((lv,k)=>{
+  const E=`<b>Nivel ${k+1}</b>: ${esc(lv.n)} · ${esc(lv.f.toLowerCase())} · ${esc(lv.info.toLowerCase())}.`;
+  out.push({kind:'mc',subj:'lv'+k,make:()=>mc({kicker:'Niveles ATC',title:`¿Cómo se llama el nivel ${k+1}?`,correct:lv.n,wrong:shuffle(LV.filter((x,j)=>j!==k)).slice(0,3).map(x=>x.n),explain:E})});
+  out.push({kind:'mc',subj:'lf'+k,make:()=>mc({kicker:'Niveles ATC',title:`¿Con qué se codifica el nivel ${k+1}?`,prompt:lv.n,correct:lv.f,wrong:['Una letra','Dos dígitos','Dos letras','Tres dígitos'].filter(x=>x!==lv.f).slice(0,3),explain:E})});
+  out.push({kind:'mc',subj:'li'+k,make:()=>mc({kicker:'Niveles ATC',title:`¿Qué información aporta el nivel ${k+1}?`,correct:lv.info,wrong:shuffle(LV.filter((x,j)=>j!==k)).slice(0,3).map(x=>x.info),explain:E})});
+  out.push({kind:'mc',subj:'lr'+k,make:()=>mc({kicker:'Niveles ATC',title:lv.info,long:true,prompt:'¿Qué nivel del código ATC nos da esta información?',correct:lvName(k),wrong:shuffle([0,1,2,3,4].filter(j=>j!==k)).slice(0,3).map(lvName),explain:E})});
+  out.push({kind:'vf',subj:'lvf'+k,make:()=>{const t=coin();const f=t?lv.f:(lv.f==='Una letra'?'Dos dígitos':'Una letra');return vf({kicker:'Verdadero o falso',statement:`El nivel ${k+1} (${esc(lv.n.toLowerCase())}) se codifica con ${f.toLowerCase()}.`,answer:t,explain:E});}});
+  out.push({kind:'vf',subj:'lvn'+k,make:()=>{const t=coin();const n=t?lv.n:pick(LV.filter((x,j)=>j!==k)).n;return vf({kicker:'Verdadero o falso',statement:`El nivel ${k+1} del código ATC es el <b>${esc(n.toLowerCase())}</b>.`,answer:t,explain:E});}});
+ });
+ A10.forEach((m,k)=>out.push({kind:'mc',subj:'a10'+k,make:()=>mc({kicker:'Ejemplo A10BA02',title:'En el código A10BA02, ¿qué nos dice la parte marcada?',long:true,html:codeHTML('A10BA02',k),correct:m,wrong:shuffle(A10.filter(x=>x!==m)).slice(0,3),explain:`A → alimentario y metabolismo · A10 → diabetes · A10B → hipoglucemiante oral sin insulina · A10BA → biguanida · A10BA02 → metformina.`})}));
+ for(const c of CODES){
+  out.push({kind:'mc',subj:c,make:()=>{const k=Math.random()*5|0;return mc({kicker:'Desglosar un código',title:`En el código ${c}, ¿qué nivel es la parte marcada?`,long:true,html:codeHTML(c,k),correct:lvName(k),wrong:shuffle([0,1,2,3,4].filter(j=>j!==k)).slice(0,3).map(lvName),explain:`Letra · 2 dígitos · letra · letra · 2 dígitos → niveles 1 a 5. La parte marcada es el ${esc(lvName(k).toLowerCase())}.`});}});
+  out.push({kind:'mc',subj:c,make:()=>{const k=1+(Math.random()*3|0);const cum=[1,3,4,5,7].map(n=>c.slice(0,n));return mc({kicker:'Código acumulado',title:`Del código ${c}, ¿cuál es el código acumulado hasta el nivel ${k+1} (${LV[k].n.toLowerCase()})?`,long:true,correct:cum[k],wrong:shuffle(cum.filter((x,j)=>j!==k)).slice(0,3),explain:`Acumulado: ${cum.join(' → ')}.`});}});
+ }
+ for(let i=0;i<3;i++) out.push({kind:'mc',subj:'fmt'+i,make:()=>{const ok=pick(CODES);return mc({kicker:'Formato del código',title:'¿Cuál de estos códigos tiene un formato ATC correcto?',long:true,prompt:'Recuerda: letra · 2 dígitos · letra · letra · 2 dígitos',mono:true,correct:ok,wrong:shuffle(BADCODES).slice(0,3),explain:`<b>${ok}</b> sigue el patrón letra · 2 dígitos · letra · letra · 2 dígitos (7 caracteres).`});}});
+ for(let i=0;i<2;i++) out.push({kind:'match',subj:'mn'+i,make:()=>buildMatch('Relaciona cada nivel con su nombre','Nivel','Nombre',shuffle(LV.map((x,k)=>({a:`Nivel ${k+1}`,b:x.n}))).slice(0,4))});
+ for(let i=0;i<2;i++) out.push({kind:'match',subj:'mi'+i,make:()=>buildMatch('Relaciona cada nivel con la información que aporta','Nivel','Información',shuffle(LV.map((x,k)=>({a:`Nivel ${k+1} · ${x.n}`,b:x.info}))).slice(0,4))});
+ out.push({kind:'match',subj:'mc',make:()=>buildMatch('Relaciona cada criterio con la pregunta a la que responde','Criterio','Pregunta',[{a:'Anatómico',b:'¿Dónde actúa?'},{a:'Terapéutico',b:'¿Para qué sirve?'},{a:'Químico',b:'¿Cuál es la molécula?'}])});
+ return out;
+}
+
+/* =====================================================================
+   SELECCIÓN Y MUESTREO
+   ===================================================================== */
+const DEF={org:true,n1:true,n2:true,sys:SYS.map(s=>s.l),count:10,types:{mc:true,vf:true,match:true}};
+let st=load();
+function load(){try{const v=JSON.parse(localStorage.getItem('atc-sel')||'null');if(v&&v.types)return Object.assign({},DEF,v);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
+function save(){try{localStorage.setItem('atc-sel',JSON.stringify(st));}catch(e){}}
+
+function stamp(b){const c={};for(const d of b.items){c[d.subj]=(c[d.subj]||0)+1;d.id=b.id+'|'+d.subj+'#'+c[d.subj];}return b;}
+let INDEX=null;
+function indexAll(){
+ if(INDEX)return INDEX;INDEX={};const all=SYS.map(s=>s.l);
+ const bs=[{id:'org',label:'Organización ATC',items:poolOrg()},{id:'n1',label:'Nivel 1 · Grupos anatómicos',items:poolN1()},
+  ...all.map(l=>({id:'n2:'+l,letter:l,label:`Nivel 2 · ${BY[l].c}`,items:poolN2(l,all)}))];
+ for(const b of bs){stamp(b);for(const d of b.items)INDEX[d.id]={d,b};}
+ return INDEX;
+}
+/* Estadística personal: solo en este navegador */
+const SK='atc-stats-v1';
+function loadStats(){try{return JSON.parse(localStorage.getItem(SK)||'{}')||{};}catch(e){return {};}}
+function saveStats(x){try{localStorage.setItem(SK,JSON.stringify(x));}catch(e){}}
+const strip=h=>String(h).replace(/<[^>]*>/g,'');
+function qLabel(q){
+ if(q.type==='vf')return strip(q.statement);
+ if(q.type==='match')return q.prompt;
+ return q.prompt&&!q.long?`${q.title} · ${q.prompt}`:q.title;
+}
+function logStat(it,ok){
+ if(!it.d.id)return;const S=loadStats();const e=S[it.d.id]||{a:0,f:0};
+ e.a++;if(!ok)e.f++;e.l=ok?1:0;e.t=Date.now();e.q=qLabel(it.q).slice(0,240);S[it.d.id]=e;saveStats(S);
+}
+function topFails(){
+ const S=loadStats(),I=indexAll();
+ return Object.entries(S).filter(([id,e])=>e.f>0&&I[id]).map(([id,e])=>({id,...e,b:I[id].b,r:e.f/e.a}))
+  .sort((x,y)=>y.r-x.r||y.f-x.f||y.t-x.t);
+}
+
+function buckets(){
+ const b=[];
+ if(st.org)b.push({id:'org',label:'Organización ATC',items:poolOrg()});
+ if(st.n1)b.push({id:'n1',label:'Nivel 1 · Grupos anatómicos',items:poolN1()});
+ if(st.n2)for(const l of st.sys)b.push({id:'n2:'+l,letter:l,label:`Nivel 2 · ${BY[l].c}`,items:poolN2(l,st.sys)});
+ for(const x of b){stamp(x);x.items=x.items.filter(d=>st.types[d.kind]);}
+ return b.filter(x=>x.items.length);
+}
+function sample(bs,n){
+ const allowed=['mc','vf','match'].filter(k=>st.types[k]);
+ const w={mc:.55,vf:.3,match:.15};const tw=allowed.reduce((s,k)=>s+w[k],0);
+ const plan=[];allowed.forEach(k=>{const c=Math.round(n*w[k]/tw);for(let i=0;i<c;i++)plan.push(k);});
+ while(plan.length<n)plan.push(allowed[0]);plan.length=n;
+ const P=shuffle(plan);
+ const qs=bs.map(b=>({b,q:shuffle(b.items)}));const order=shuffle(qs);
+ const used=new Set(),out=[];let bi=0,guard=0;
+ while(out.length<n&&guard++<n*40){
+  const live=order.filter(x=>x.q.length);if(!live.length)break;
+  const cur=live[bi++%live.length];const kind=P[out.length];
+  const fresh=d=>!used.has(cur.b.id+'|'+d.subj);
+  let idx=cur.q.findIndex(d=>d.kind===kind&&fresh(d));
+  if(idx<0)idx=cur.q.findIndex(d=>d.kind===kind);
+  if(idx<0)idx=cur.q.findIndex(fresh);
+  if(idx<0)idx=0;
+  const d=cur.q.splice(idx,1)[0];
+  const q=d.make();if(!q)continue;
+  used.add(cur.b.id+'|'+d.subj);
+  out.push({d,b:cur.b,q});
+ }
+ return shuffle(out);
+}
+
+/* =====================================================================
+   VISTAS
+   ===================================================================== */
+const view=$('#view');
+let run=null; // {items, i, results, answered}
+
+function setTab(t){
+ $('#tab-practica').setAttribute('aria-selected',t==='p');
+ $('#tab-tablas').setAttribute('aria-selected',t==='t');
+ if(t==='t')renderTables();else if(run&&run.i<run.items.length)renderQ();else renderSetup();
+}
+$('#tab-practica').onclick=()=>setTab('p');
+$('#tab-tablas').onclick=()=>setTab('t');
+
+function practicing(on){$('.code').hidden=on;$('.tabs').hidden=on;}
+function renderSetup(){
+ practicing(false);
+ run=null;
+ const bs=buckets();const total=bs.reduce((s,b)=>s+b.items.length,0);
+ const anyType=st.types.mc||st.types.vf||st.types.match;
+ const ok=bs.length&&anyType;
+ view.innerHTML=`
+ <section class="panel" aria-labelledby="h-setup">
+  <h2 id="h-setup">¿Qué quieres repasar?</h2>
+  <div class="step">
+   <label class="block"><input type="checkbox" id="c-org" ${st.org?'checked':''}><div><strong>Organización del sistema ATC</strong><span>Qué significa cada nivel, cuántas letras o dígitos lleva, criterios de clasificación y desglose de códigos</span></div></label>
+   <label class="block"><input type="checkbox" id="c-n1" ${st.n1?'checked':''}><div><strong>Nivel 1 · Grupos anatómicos</strong><span>De letra a sistema y de sistema a letra</span></div></label>
+   <label class="block"><input type="checkbox" id="c-n2" ${st.n2?'checked':''}><div><strong>Nivel 2 · Grupos terapéuticos</strong><span>Para qué sirve cada grupo, a qué sistema pertenece y sus principios activos</span></div></label>
+  </div>
+  <div class="step" ${st.n2?'':'hidden'}>
+   <div class="row" style="justify-content:space-between"><span class="lbl" style="font-size:.78rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700">Sistemas del nivel 2</span>
+    <span class="row"><button class="ghost" id="all">Todos</button><button class="ghost" id="none">Ninguno</button></span></div>
+   <div class="sysgrid">${SYS.map(s=>`<button class="sysbtn" data-l="${s.l}" aria-pressed="${st.sys.includes(s.l)}">${chip(s.l)}<span>${esc(s.c)}</span></button>`).join('')}</div>
+  </div>
+  <div class="step">
+   <span class="lbl">Tipo de preguntas</span>
+   <div class="row">
+    <label class="chk"><input type="checkbox" id="t-mc" ${st.types.mc?'checked':''}> Test a, b, c, d</label>
+    <label class="chk"><input type="checkbox" id="t-vf" ${st.types.vf?'checked':''}> Verdadero / Falso</label>
+    <label class="chk"><input type="checkbox" id="t-match" ${st.types.match?'checked':''}> Relacionar</label>
+   </div>
+  </div>
+  <div class="step">
+   <span class="lbl">Preguntas por intento</span>
+   <div class="seg-ctl">${[10,20,30].map(n=>`<button data-n="${n}" aria-pressed="${st.count===n}">${n}</button>`).join('')}</div>
+  </div>
+  <div class="row" style="justify-content:space-between">
+   <span class="subtle">${ok?`Banco disponible: <b>${total}</b> preguntas. Cada intento elige ${Math.min(st.count,total)} al azar.`:`<span class="warn">${anyType?'Elige al menos un bloque o un sistema.':'Elige al menos un tipo de pregunta.'}</span>`}</span>
+   <button class="primary" id="go" ${ok?'':'disabled'}>Empezar</button>
+  </div>
+ </section>
+ ${statsPanel()}`;
+ bindStats();
+ const bind=(id,fn)=>{$(id).onchange=e=>{fn(e.target.checked);save();renderSetup();};};
+ bind('#c-org',v=>st.org=v);bind('#c-n1',v=>st.n1=v);bind('#c-n2',v=>st.n2=v);
+ bind('#t-mc',v=>st.types.mc=v);bind('#t-vf',v=>st.types.vf=v);bind('#t-match',v=>st.types.match=v);
+ view.querySelectorAll('.sysbtn').forEach(b=>b.onclick=()=>{const l=b.dataset.l;st.sys=st.sys.includes(l)?st.sys.filter(x=>x!==l):SYS.map(s=>s.l).filter(x=>x===l||st.sys.includes(x));save();renderSetup();});
+ view.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{st.count=+b.dataset.n;save();renderSetup();});
+ $('#all').onclick=()=>{st.sys=SYS.map(s=>s.l);save();renderSetup();};
+ $('#none').onclick=()=>{st.sys=[];save();renderSetup();};
+ $('#go').onclick=()=>start(sample(buckets(),st.count));
+}
+
+function statsPanel(){
+ const T=topFails(),S=loadStats();const total=Object.values(S).reduce((s,e)=>s+e.a,0);
+ if(!total)return `<section class="panel"><h2>Tus preguntas más falladas</h2><p class="subtle" style="margin:0">Aquí aparecerán las preguntas que más te cuestan cuando hayas hecho algún intento. Se guardan solo en este navegador.</p></section>`;
+ const shown=T.slice(0,10);
+ return `<section class="panel" aria-labelledby="h-stats">
+  <div class="row" style="justify-content:space-between"><h2 id="h-stats">Tus preguntas más falladas</h2><span class="subtle">${total} respuestas guardadas</span></div>
+  ${T.length?`<ul class="stats">${shown.map(x=>`<li><div class="q">${esc(x.q)}<small>${x.b.letter?chip(x.b.letter,true):''}${esc(x.b.label)} · ${x.l?'<span class="pill ok">Última vez: bien</span>':'<span class="pill bad">Última vez: mal</span>'}</small></div>
+   <div class="nums"><span>${x.f} de ${x.a} mal</span><span class="meter"><i style="width:${Math.round(x.r*100)}%"></i></span></div></li>`).join('')}</ul>
+   ${T.length>shown.length?`<p class="subtle" style="margin:0">Y ${T.length-shown.length} preguntas más con algún fallo.</p>`:''}`
+   :`<p style="margin:0">Todavía no has fallado ninguna pregunta. ¡Sigue así!</p>`}
+  <div class="row" style="justify-content:space-between">
+   ${T.length?`<button class="primary" id="practfails">Practicar mis fallos (${Math.min(T.length,st.count)})</button>`:'<span></span>'}
+   <span id="clearbox"><button class="ghost" id="clear">Borrar estadística</button></span>
+  </div>
+  <p class="subtle" style="margin:0">Se guarda solo en este navegador y nadie más puede verla. Si cambias de ordenador o borras el historial, se pierde.</p>
+ </section>`;
+}
+function bindStats(){
+ const pf=$('#practfails');
+ if(pf)pf.onclick=()=>{const I=indexAll();start(shuffle(topFails().slice(0,st.count).map(x=>{const {d,b}=I[x.id];const q=d.make();return q?{d,b,q}:null;}).filter(Boolean)));};
+ const c=$('#clear');
+ if(c)c.onclick=()=>{$('#clearbox').innerHTML=`<span class="confirm"><span class="subtle">¿Borrar toda tu estadística?</span><button class="ghost" id="clr-yes" style="color:var(--bad);border-color:var(--bad)">Sí, borrar</button><button class="ghost" id="clr-no">Cancelar</button></span>`;
+  $('#clr-yes').onclick=()=>{try{localStorage.removeItem(SK);}catch(e){}renderSetup();};
+  $('#clr-no').onclick=()=>renderSetup();};
+}
+function start(items){run={items,i:0,results:[]};renderQ();window.scrollTo({top:0});}
+
+function tagHTML(b,q){
+ if(!b.letter)return `<span class="tag">${esc(b.label)}</span>`;
+ return `<div class="row" id="tagrow"><span class="tag" id="tag">Nivel 2 · Grupos terapéuticos</span>${q.noHint?'':`<button class="ghost" id="hint">Pista: ver sistema</button>`}</div>`;
+}
+function revealTag(used){
+ const it=run.items[run.i];if(!it.b.letter||!$('#tag'))return;
+ if(used)it.hint=true;
+ $('#tag').innerHTML=`${chip(it.b.letter,true)}${esc(it.b.label)}${it.hint?' <span style="color:var(--hot)">· pista usada</span>':''}`;
+ $('#hint')?.remove();
+}
+
+function renderQ(){
+ practicing(true);
+ const {items,i}=run;const it=items[i];const q=it.q;
+ const pct=(i/items.length)*100;
+ let body='';
+ if(q.type==='mc'){
+  const cls=q.letters?'letters':'opts';
+  body=`<div class="${cls}">${q.options.map((o,k)=>`<button class="opt" data-k="${k}">${q.letters?'':`<span class="k">${'abcd'[k]}</span>`}<span${q.mono?' style="font-family:var(--f-mono);font-weight:700;letter-spacing:.05em"':''}>${esc(o)}</span></button>`).join('')}</div>`;
+ }else if(q.type==='vf'){
+  body=`<div class="vf"><button class="opt" data-v="1">Verdadero</button><button class="opt" data-v="0">Falso</button></div>`;
+ }else{
+  body=`<p class="mhelp">Toca un elemento de la izquierda y luego su pareja de la derecha. Toca una pareja ya hecha para deshacerla.</p>
+  <div class="match"><div class="mcol"><h4>${esc(q.la)}</h4>${q.left.map((t,k)=>`<button class="mi" data-side="l" data-k="${k}"><span class="n">${k+1}</span>${esc(t)}</button>`).join('')}</div>
+  <div class="mcol"><h4>${esc(q.lb)}</h4>${q.right.map((t,k)=>`<button class="mi" data-side="r" data-k="${k}"><span class="n"></span>${esc(t)}</button>`).join('')}</div></div>
+  <button class="primary" id="check" disabled style="align-self:flex-start">Comprobar</button>`;
+ }
+ const title=q.type==='vf'?`<div class="qtitle long">${q.statement}</div>`:q.type==='match'?`<div class="qtitle">${esc(q.prompt)}</div>`:
+  (q.big?`<div class="row" style="gap:14px">${chip(q.big).replace('class="chip"','class="chip" style="--h:'+BY[q.big].h+';width:56px;height:56px;font-size:1.8rem;border-radius:10px"')}<div class="qtitle">${esc(q.title)}</div></div>`:`<div class="qtitle${q.long?' long':''}">${esc(q.title)}</div>`);
+ view.innerHTML=`
+ <section style="display:flex;flex-direction:column;gap:12px">
+  <div class="qhead"><span id="quitbox"><button class="ghost" id="quit">← Cambiar selección</button></span><span class="count">${i+1} / ${items.length}</span></div>
+  <div class="bar"><i style="width:${pct}%"></i></div>
+  <article class="qcard">
+   ${tagHTML(it.b,q)}
+   <div style="display:flex;flex-direction:column;gap:6px">
+    ${q.kicker?`<span class="kicker">${esc(q.kicker)}</span>`:''}
+    ${title}
+    ${q.html||''}
+    ${q.type==='mc'&&q.prompt?`<div class="qprompt">${esc(q.prompt)}</div>`:''}
+   </div>
+   ${body}
+   <div id="fb"></div>
+  </article>
+ </section>`;
+ $('#quit').onclick=()=>{
+  if(!run.results.length&&!run.answered){run=null;renderSetup();return;}
+  $('#quitbox').innerHTML=`<span class="confirm" role="alert"><span><b>Se perderá el intento en el que estás trabajando.</b> ¿Desea continuar?</span><button class="ghost" id="quit-yes" style="color:var(--bad);border-color:var(--bad)">Sí, salir</button><button class="ghost" id="quit-no">No, seguir con el intento</button></span>`;
+  $('#quit-yes').onclick=()=>{run=null;renderSetup();window.scrollTo({top:0});};
+  const back=()=>{$('#quitbox').innerHTML='<button class="ghost" id="quit">← Cambiar selección</button>';$('#quit').onclick=quitHandler;};
+  $('#quit-no').onclick=back;$('#quit-no').focus();
+ };
+ const quitHandler=$('#quit').onclick;
+ if($('#hint'))$('#hint').onclick=()=>revealTag(true);
+ if(q.type==='mc')view.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answerMC(+b.dataset.k));
+ if(q.type==='vf')view.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answerVF(b.dataset.v==='1'));
+ if(q.type==='match')setupMatch(q);
+ run.answered=false;
+}
+
+function feedback(ok,html,partial){
+ const v=partial!=null?(ok?'¡Todo correcto!':`${partial}`):(ok?'¡Correcto!':'No es correcto');
+ $('#fb').innerHTML=`<div class="fb ${ok?'ok':'bad'}"><span class="v">${v}</span><div>${html}</div></div>
+ <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="primary next" id="next">${run.i+1<run.items.length?'Siguiente →':'Ver resultado'}</button></div>`;
+ run.answered=true;
+ revealTag(false);
+ const n=$('#next');n.focus({preventScroll:true});n.onclick=next;
+ $('#fb').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function record(ok,pts,correctText){const it=run.items[run.i];run.results.push({it,ok,pts,correctText});logStat(it,ok);}
+function answerMC(k){
+ if(run.answered)return;const q=run.items[run.i].q;const ok=k===q.answer;
+ view.querySelectorAll('.opt').forEach((b,j)=>{b.disabled=true;if(j===q.answer)b.classList.add('ok');else if(j===k)b.classList.add('bad');else b.classList.add('dim');});
+ record(ok,ok?1:0,q.options[q.answer]);
+ feedback(ok,(ok?'':`La respuesta correcta es <b>${esc(q.options[q.answer])}</b>.<br>`)+q.explain);
+}
+function answerVF(v){
+ if(run.answered)return;const q=run.items[run.i].q;const ok=v===q.answer;
+ view.querySelectorAll('.opt').forEach(b=>{b.disabled=true;const bv=b.dataset.v==='1';if(bv===q.answer)b.classList.add('ok');else b.classList.add(bv===v?'bad':'dim');});
+ record(ok,ok?1:0,q.answer?'Verdadero':'Falso');
+ feedback(ok,`Es <b>${q.answer?'verdadero':'falso'}</b>. ${q.explain}`);
+}
+function setupMatch(q){
+ const pairs=Array(q.left.length).fill(null);let sel=null;
+ const L=[...view.querySelectorAll('.mi[data-side="l"]')],R=[...view.querySelectorAll('.mi[data-side="r"]')];
+ function paint(){
+  L.forEach((b,k)=>{b.classList.toggle('sel',sel===k);b.classList.toggle('paired',pairs[k]!=null);});
+  R.forEach((b,r)=>{const l=pairs.indexOf(r);b.classList.toggle('paired',l>=0);b.querySelector('.n').textContent=l>=0?l+1:'';});
+  $('#check').disabled=pairs.some(p=>p==null);
+ }
+ L.forEach((b,k)=>b.onclick=()=>{if(run.answered)return;if(pairs[k]!=null)pairs[k]=null;sel=k;paint();});
+ R.forEach((b,r)=>b.onclick=()=>{if(run.answered)return;const owner=pairs.indexOf(r);
+  if(sel==null){if(owner>=0){pairs[owner]=null;paint();}return;}
+  if(owner>=0)pairs[owner]=null;pairs[sel]=r;
+  sel=pairs.findIndex(p=>p==null);if(sel<0)sel=null;paint();});
+ sel=0;paint();
+ $('#check').onclick=()=>{
+  let good=0;
+  L.forEach((b,k)=>{const ok=pairs[k]===q.sol[k];if(ok)good++;b.classList.remove('sel');b.classList.add(ok?'ok':'bad');b.disabled=true;
+   if(!ok)b.insertAdjacentHTML('beforeend',`<span class="fix">→ ${esc(q.right[q.sol[k]])}</span>`);});
+  R.forEach(b=>b.disabled=true);
+  $('#check').hidden=true;
+  const all=good===q.left.length;const pts=good/q.left.length;
+  record(all,pts,q.explain);
+  feedback(all,all?q.explain:`Las parejas correctas son:<br>${q.explain}`,`${good} de ${q.left.length} parejas correctas`);
+ };
+}
+function next(){run.i++;if(run.i<run.items.length){renderQ();window.scrollTo({top:0});}else renderResults();}
+
+document.addEventListener('keydown',e=>{
+ if(!run||run.i>=run.items.length||$('#tab-tablas').getAttribute('aria-selected')==='true')return;
+ if(e.target.closest&&e.target.closest('input'))return;
+ const q=run.items[run.i].q;
+ if(!run.answered){
+  if(q.type==='mc'){const k='1234abcd'.indexOf(e.key.toLowerCase());if(k>=0){answerMC(k%4);e.preventDefault();}}
+  if(q.type==='vf'){if(/^[vt1]$/i.test(e.key))answerVF(true);if(/^[f2]$/i.test(e.key))answerVF(false);}
+ }else if(e.key==='Enter'&&!e.target.closest?.('button')){next();e.preventDefault();}
+});
+
+function renderResults(){
+ practicing(false);
+ const R=run.results;const pts=R.reduce((s,r)=>s+r.pts,0);const n=R.length;const pct=Math.round(pts/n*100);
+ const by={};for(const r of R){const b=r.it.b;(by[b.id]??={b,p:0,n:0});by[b.id].p+=r.pts;by[b.id].n++;}
+ const misses=R.filter(r=>!r.ok);
+ const hints=R.filter(r=>r.it.hint).length;
+ const msg=pct>=90?'Dominas este bloque.':pct>=70?'Buen trabajo. Repasa los fallos y vuelve a intentarlo.':pct>=50?'Vas por buen camino. Echa un vistazo a las tablas de repaso.':'Repasa las tablas y prueba otra vez: cada intento trae preguntas nuevas.';
+ const fmt=x=>Number.isInteger(x)?x:x.toFixed(1).replace('.',',');
+ view.innerHTML=`
+ <section class="panel">
+  <span class="eyebrow">Resultado</span>
+  <div class="score"><span class="big">${fmt(pts)}<span style="font-size:1.6rem;color:var(--muted)"> / ${n}</span></span><span class="pct">${pct} %</span></div>
+  <p style="margin:0">${msg}${hints?` <span class="subtle">Has usado ${hints} ${hints===1?'pista':'pistas'}.</span>`:''}</p>
+  <div class="bkt">${Object.values(by).map(x=>`<div class="r"><span class="tag" style="color:var(--ink)">${x.b.letter?chip(x.b.letter,true):''}${esc(x.b.label)}</span><span class="m"><i style="width:${x.p/x.n*100}%"></i></span><span class="v">${fmt(x.p)}/${x.n}</span></div>`).join('')}</div>
+  <div class="row">
+   <button class="primary" id="again">Nuevo intento</button>
+   ${misses.length?`<button class="secondary" id="fails">Repetir solo los fallos (${misses.length})</button>`:''}
+   <button class="ghost" id="change">Cambiar selección</button>
+  </div>
+ </section>
+ ${misses.length?`<section class="panel"><h2>Para repasar</h2><ul class="miss">${misses.map(r=>{const q=r.it.q;const t=q.type==='vf'?q.statement:q.type==='match'?esc(q.prompt):esc(q.title);return `<li><div>${t}</div><div class="a">${q.type==='match'?r.correctText:esc(r.correctText)}</div></li>`;}).join('')}</ul></section>`:''}`;
+ $('#again').onclick=()=>start(sample(buckets(),st.count));
+ if(misses.length)$('#fails').onclick=()=>start(shuffle(misses.map(r=>{const q=r.it.d.make();return q?{d:r.it.d,b:r.it.b,q}:null;}).filter(Boolean)));
+ $('#change').onclick=()=>{run=null;renderSetup();};
+ window.scrollTo({top:0});
+}
+
+function renderTables(){
+ practicing(false);
+ const multi=Object.entries(DG).filter(([k,s])=>s.size>1);
+ view.innerHTML=`
+ <section style="display:flex;flex-direction:column;gap:12px">
+  <details class="sys" open><summary>Niveles del código ATC</summary>
+   <div class="tbl lvtbl" style="padding:0 14px 14px"><table><thead><tr><th>Nivel</th><th>Nombre</th><th>Se codifica con</th><th>Qué indica</th><th>En A10BA02</th></tr></thead><tbody>
+   ${LV.map((l,k)=>`<tr><td class="c">${k+1}</td><td><b>${esc(l.n)}</b></td><td>${esc(l.f)}</td><td>${esc(l.info)}</td><td class="c">${['A','10','B','A','02'][k]} <span style="font-family:var(--f-body);font-weight:400;color:var(--muted)">· ${esc(A10[k].replace(/^Es (un |una )?|^Actúa sobre el |^El principio activo es la /,''))}</span></td></tr>`).join('')}
+   </tbody></table></div></details>
+  ${SYS.map(s=>`<details class="sys"><summary>${chip(s.l)}<span>${esc(s.n)}</span></summary>
+   <div class="sysdesc">${esc(s.d)}.</div>
+   <div class="tbl"><table><thead><tr><th>Grupo terapéutico</th><th>Para qué sirve</th><th>Ejemplos</th></tr></thead><tbody>
+   ${s.g.map(g=>`<tr><td>${esc(g.n)}</td><td>${esc(g.u)}</td><td>${g.ex.length?esc(g.ex.join(', ')):'<span class="subtle">—</span>'}</td></tr>`).join('')}
+   </tbody></table></div></details>`).join('')}
+  <div class="note"><b>Ojo: principios activos que aparecen en más de un grupo</b>
+   <ul>${multi.map(([k,s])=>`<li><b>${esc(k.replace(/^./,c=>c.toUpperCase()))}</b>: ${[...s].map(id=>`${esc(G[id].n.toLowerCase())} (${G[id].sys})`).join(', ')}</li>`).join('')}</ul></div>
+ </section>`;
+}
+
+/* Tema claro / oscuro / del navegador */
+const TK='atc-theme';
+function applyTheme(t){
+ if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');
+ document.querySelectorAll('.theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+}
+let theme='auto';try{theme=localStorage.getItem(TK)||'auto';}catch(e){}
+applyTheme(theme);
+document.querySelectorAll('.theme button').forEach(b=>b.onclick=()=>{theme=b.dataset.t;applyTheme(theme);try{localStorage.setItem(TK,theme);}catch(e){}});
+
+/* Ventana de relación curricular */
+const dlg=$('#cur');
+$('#curopen').onclick=()=>{if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');};
+$('#curclose').onclick=()=>dlg.close?dlg.close():dlg.removeAttribute('open');
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+
+renderSetup();
+</script>
+
+</body>
+</html>
