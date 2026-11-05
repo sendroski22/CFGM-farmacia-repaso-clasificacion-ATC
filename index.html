@@ -54,7 +54,7 @@ button:focus-visible,input:focus-visible+span,summary:focus-visible{outline:3px 
 .top h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:800;letter-spacing:-.02em}
 .top h1 em{font-style:normal;color:var(--accent)}
 .toprow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.toprow>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.toprow>div:first-child{display:flex;flex-direction:column;gap:6px;min-width:0}
 .curlink{align-self:flex-start;background:none;border:0;padding:0;color:var(--accent);font-weight:700;font-size:.9rem;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .curlink:hover{text-decoration-thickness:2px}
 .theme{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
@@ -118,6 +118,7 @@ dialog.cur::backdrop{background:rgba(10,25,22,.55)}
 .primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:12px 22px;font-weight:700;font-size:1.02rem}
 .primary:disabled{opacity:.45;cursor:not-allowed}
 .secondary{background:var(--surface);border:1px solid var(--ink);border-radius:8px;padding:11px 18px;font-weight:700}
+.secondary:disabled,.ghost:disabled{opacity:.4;cursor:not-allowed}
 .warn{color:var(--bad);font-weight:700;font-size:.9rem}
 
 /* Pregunta */
@@ -189,6 +190,21 @@ dialog.cur::backdrop{background:rgba(10,25,22,.55)}
 .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.74rem;font-weight:700}
 .pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
 .confirm{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* Escribir el principio activo */
+.slots{position:relative;display:flex;flex-wrap:wrap;gap:12px 20px;padding:6px 0;cursor:text}
+.word{display:grid;grid-template-columns:repeat(var(--n),minmax(14px,34px));gap:4px;max-width:100%}
+.slot{height:44px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:700;font-size:1.2rem;text-transform:uppercase;background:var(--bg);border-bottom:3px solid var(--muted);border-radius:6px 6px 0 0;color:var(--ink)}
+.slot.cur{border-bottom-color:var(--hot);background:var(--hot-soft)}
+.slot.fix{color:var(--accent);border-bottom-color:var(--accent)}
+.slots.ok .slot{background:var(--ok-soft);border-bottom-color:var(--ok);color:var(--ok)}
+.slots.sol .slot{background:var(--bad-soft);border-bottom-color:var(--bad);color:var(--bad)}
+.slots input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;background:transparent;color:transparent;caret-color:transparent;cursor:text}
+.slots input:disabled{display:none}
+.slots:focus-within .slot.cur{box-shadow:0 0 0 2px var(--hot)}
+.wmsg{font-size:.93rem;min-height:1.4em}
+.wmsg.bad{color:var(--bad);font-weight:700}
+.wmsg.info{color:var(--muted)}
+@media (max-width:520px){.slot{height:38px;font-size:1rem}.word{gap:3px}}
 
 /* Tablas de repaso */
 details.sys{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
@@ -373,6 +389,8 @@ const SYS = [
 ];
 /* Principios activos que también aparecen en otros grupos (diapositiva 29) */
 const ALSO = {'ketoconazol':['G01','J02']};
+/* Ejemplos que NO se usan en las preguntas de escribir (no son un principio activo concreto) */
+const NOWRITE=['insulinas','heparinas','preparados con hierro','blastoestimulina','breas de carbón','interferón','interleucinas','vacuna de la gripe','vacuna del virus del papiloma humano','inmunoglobulina antitetánica','anillo vaginal de etonogestrel y etinilestradiol','extracto de ácaros del polvo','yodo-131','levonorgestrel/etinilestradiol','amoxicilina + ácido clavulánico'];
 /* Grupos que se parecen demasiado: nunca se usan como distractor el uno del otro */
 const CONFLICTS = [['C02','C08','C09'],['C01','C07'],['D01','G01','J02'],['D06','J01'],['A01','R02','D08'],['D04','R06'],['M01','M02','N02'],['L04','H02'],['D07','H02'],['G02','G03'],['R01','R05'],['A02','A09']];
 
@@ -466,6 +484,8 @@ function vf(o){return Object.assign({type:'vf'},o);}
    ===================================================================== */
 function gExplain(g){return `<b>${esc(g.n)}</b> · grupo ${g.sys} (${esc(BY[g.sys].n)}). Sirven para: ${esc(g.u)}.`+(g.ex.length?` Ejemplos: ${esc(g.ex.join(', '))}.`:'');}
 function drugNote(d,g){const ids=[...(DG[key(d)]||[])].filter(id=>id!==g.id);if(!ids.length)return '';return ` <br><b>Ojo:</b> ${esc(key(d).replace(/^./,c=>c.toUpperCase()))} también aparece en ${ids.map(id=>`${esc(G[id].n)} (${G[id].sys})`).join(' y en ')}.`;}
+function writable(g){return [...new Set(g.ex.map(d=>d.replace(/\s*\(.*?\)\s*/g,'').trim()).filter(d=>!NOWRITE.includes(d.toLowerCase())))];}
+const norm=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
 function distractGroups(g,dk){const ok=x=>!conflict(g.id,x.id)&&!(dk&&DG[dk]?.has(x.id));return [BY[g.sys].g.filter(ok),ALLG.filter(x=>x.sys!==g.sys&&ok(x))];}
 function distractDrugs(g){const ok=({d,g:x})=>x.id!==g.id&&![...(DG[key(d)]||[])].some(id=>conflict(id,g.id));const all=ALLDRUGS.filter(ok);return [all.filter(x=>x.g.sys===g.sys),all.filter(x=>x.g.sys!==g.sys)];}
 
@@ -485,6 +505,16 @@ function poolN2(l,selected){
    out.push({kind:'mc',subj:g.id,make:()=>{const sysOf=new Set([...DG[dk]].map(id=>G[id].sys));return mc({kicker:'Principio activo',title:d,noHint:true,prompt:'¿En qué grupo anatómico (nivel 1) se clasifica?',correct:sysLabel(l),wrong:shuffle(SYS.filter(x=>!sysOf.has(x.l))).slice(0,3).map(x=>sysLabel(x.l)),explain:E+N});}});
    out.push({kind:'vf',subj:g.id,make:()=>{const t=coin();const w=t?g:take(distractGroups(g,dk),1,x=>x.id)[0];return vf({kicker:'Verdadero o falso',statement:`<b>${esc(d)}</b> es un ejemplo del grupo <b>${esc(w.n)}</b>.`,answer:t,explain:E+N});}});
   }
+  const W=writable(g);
+  if(W.length)out.push({kind:'write',subj:g.id,make:()=>{
+   const a=pick(W);const n=a.replace(/\s/g,'').length;
+   const others=W.filter(x=>x!==a);
+   return {type:'write',kicker:'Escribe el principio activo',title:g.n,noHint:true,
+    prompt:`Nombra un ejemplo de principio activo de este grupo terapéutico (${n} letras${a.includes(' ')?', dos palabras':''}).`,
+    label:`Nombra un ejemplo de principio activo del grupo «${g.n}»`,
+    answer:a,alts:others,
+    explain:gExplain(g)+(others.length?` <br>Otros ejemplos del grupo que también estudias: ${esc(others.join(', '))}.`:'')+drugNote(a,g)};
+  }});
  }
  // Relacionar: dentro del sistema si hay suficientes grupos; si no, se completa con los sistemas elegidos
  const own=s.g, others=ALLG.filter(x=>x.sys!==l&&selected.includes(x.sys)), rest=ALLG.filter(x=>x.sys!==l);
@@ -575,9 +605,9 @@ function poolOrg(){
 /* =====================================================================
    SELECCIÓN Y MUESTREO
    ===================================================================== */
-const DEF={org:true,n1:true,n2:true,sys:SYS.map(s=>s.l),count:10,types:{mc:true,vf:true,match:true}};
+const DEF={org:true,n1:true,n2:true,sys:SYS.map(s=>s.l),count:10,types:{mc:true,vf:true,match:true,write:true}};
 let st=load();
-function load(){try{const v=JSON.parse(localStorage.getItem('atc-sel')||'null');if(v&&v.types)return Object.assign({},DEF,v);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
+function load(){try{const v=JSON.parse(localStorage.getItem('atc-sel')||'null');if(v&&v.types){const o=Object.assign({},DEF,v);o.types=Object.assign({},DEF.types,v.types);return o;}}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function save(){try{localStorage.setItem('atc-sel',JSON.stringify(st));}catch(e){}}
 
 function stamp(b){const c={};for(const d of b.items){c[d.subj]=(c[d.subj]||0)+1;d.id=b.id+'|'+d.subj+'#'+c[d.subj];}return b;}
@@ -597,6 +627,7 @@ const strip=h=>String(h).replace(/<[^>]*>/g,'');
 function qLabel(q){
  if(q.type==='vf')return strip(q.statement);
  if(q.type==='match')return q.prompt;
+ if(q.type==='write')return q.label;
  return q.prompt&&!q.long?`${q.title} · ${q.prompt}`:q.title;
 }
 function logStat(it,ok){
@@ -618,8 +649,8 @@ function buckets(){
  return b.filter(x=>x.items.length);
 }
 function sample(bs,n){
- const allowed=['mc','vf','match'].filter(k=>st.types[k]);
- const w={mc:.55,vf:.3,match:.15};const tw=allowed.reduce((s,k)=>s+w[k],0);
+ const allowed=['mc','vf','match','write'].filter(k=>st.types[k]&&(k!=='write'||st.n2));
+ const w={mc:.5,vf:.27,match:.13,write:.2};const tw=allowed.reduce((s,k)=>s+w[k],0);
  const plan=[];allowed.forEach(k=>{const c=Math.round(n*w[k]/tw);for(let i=0;i<c;i++)plan.push(k);});
  while(plan.length<n)plan.push(allowed[0]);plan.length=n;
  const P=shuffle(plan);
@@ -660,7 +691,7 @@ function renderSetup(){
  practicing(false);
  run=null;
  const bs=buckets();const total=bs.reduce((s,b)=>s+b.items.length,0);
- const anyType=st.types.mc||st.types.vf||st.types.match;
+ const anyType=st.types.mc||st.types.vf||st.types.match||(st.n2&&st.types.write);
  const ok=bs.length&&anyType;
  view.innerHTML=`
  <section class="panel" aria-labelledby="h-setup">
@@ -681,6 +712,7 @@ function renderSetup(){
     <label class="chk"><input type="checkbox" id="t-mc" ${st.types.mc?'checked':''}> Test a, b, c, d</label>
     <label class="chk"><input type="checkbox" id="t-vf" ${st.types.vf?'checked':''}> Verdadero / Falso</label>
     <label class="chk"><input type="checkbox" id="t-match" ${st.types.match?'checked':''}> Relacionar</label>
+    <label class="chk" ${st.n2?'':'hidden'}><input type="checkbox" id="t-write" ${st.types.write?'checked':''}> Escribir el principio activo <span class="subtle">(nivel 2)</span></label>
    </div>
   </div>
   <div class="step">
@@ -696,7 +728,7 @@ function renderSetup(){
  bindStats();
  const bind=(id,fn)=>{$(id).onchange=e=>{fn(e.target.checked);save();renderSetup();};};
  bind('#c-org',v=>st.org=v);bind('#c-n1',v=>st.n1=v);bind('#c-n2',v=>st.n2=v);
- bind('#t-mc',v=>st.types.mc=v);bind('#t-vf',v=>st.types.vf=v);bind('#t-match',v=>st.types.match=v);
+ bind('#t-mc',v=>st.types.mc=v);bind('#t-vf',v=>st.types.vf=v);bind('#t-match',v=>st.types.match=v);bind('#t-write',v=>st.types.write=v);
  view.querySelectorAll('.sysbtn').forEach(b=>b.onclick=()=>{const l=b.dataset.l;st.sys=st.sys.includes(l)?st.sys.filter(x=>x!==l):SYS.map(s=>s.l).filter(x=>x===l||st.sys.includes(x));save();renderSetup();});
  view.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{st.count=+b.dataset.n;save();renderSetup();});
  $('#all').onclick=()=>{st.sys=SYS.map(s=>s.l);save();renderSetup();};
@@ -752,6 +784,12 @@ function renderQ(){
   body=`<div class="${cls}">${q.options.map((o,k)=>`<button class="opt" data-k="${k}">${q.letters?'':`<span class="k">${'abcd'[k]}</span>`}<span${q.mono?' style="font-family:var(--f-mono);font-weight:700;letter-spacing:.05em"':''}>${esc(o)}</span></button>`).join('')}</div>`;
  }else if(q.type==='vf'){
   body=`<div class="vf"><button class="opt" data-v="1">Verdadero</button><button class="opt" data-v="0">Falso</button></div>`;
+ }else if(q.type==='write'){
+  const words=q.answer.split(' ');let k=0;
+  body=`<div class="slots" id="slots">${words.map(w=>`<div class="word" style="--n:${w.length}">${[...w].map(()=>`<span class="slot" data-i="${k++}"></span>`).join('')}</div>`).join('')}
+   <input id="winput" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Escribe el principio activo"></div>
+  <div class="wmsg" id="wmsg" aria-live="polite"></div>
+  <div class="row"><button class="primary" id="wcheck" disabled>Comprobar</button><button class="secondary" id="whint">Pista: primera letra</button><button class="ghost" id="wskip">Pasar pregunta</button></div>`;
  }else{
   body=`<p class="mhelp">Toca un elemento de la izquierda y luego su pareja de la derecha. Toca una pareja ya hecha para deshacerla.</p>
   <div class="match"><div class="mcol"><h4>${esc(q.la)}</h4>${q.left.map((t,k)=>`<button class="mi" data-side="l" data-k="${k}"><span class="n">${k+1}</span>${esc(t)}</button>`).join('')}</div>
@@ -770,7 +808,7 @@ function renderQ(){
     ${q.kicker?`<span class="kicker">${esc(q.kicker)}</span>`:''}
     ${title}
     ${q.html||''}
-    ${q.type==='mc'&&q.prompt?`<div class="qprompt">${esc(q.prompt)}</div>`:''}
+    ${(q.type==='mc'||q.type==='write')&&q.prompt?`<div class="qprompt">${esc(q.prompt)}</div>`:''}
    </div>
    ${body}
    <div id="fb"></div>
@@ -788,6 +826,7 @@ function renderQ(){
  if(q.type==='mc')view.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answerMC(+b.dataset.k));
  if(q.type==='vf')view.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answerVF(b.dataset.v==='1'));
  if(q.type==='match')setupMatch(q);
+ if(q.type==='write')setupWrite(q);
  run.answered=false;
 }
 
@@ -812,6 +851,61 @@ function answerVF(v){
  view.querySelectorAll('.opt').forEach(b=>{b.disabled=true;const bv=b.dataset.v==='1';if(bv===q.answer)b.classList.add('ok');else b.classList.add(bv===v?'bad':'dim');});
  record(ok,ok?1:0,q.answer?'Verdadero':'Falso');
  feedback(ok,`Es <b>${q.answer?'verdadero':'falso'}</b>. ${q.explain}`);
+}
+function setupWrite(q){
+ const letters=[...q.answer.replace(/\s/g,'')];const N=letters.length;
+ const slots=[...view.querySelectorAll('.slot')],inp=$('#winput'),msg=$('#wmsg');
+ let fixed=0,tries=0,done=false;const MAX=3;
+ const clean=v=>[...v.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g,'')].slice(0,N-fixed).join('');
+ function paint(){
+  const typed=[...inp.value];
+  slots.forEach((el,i)=>{
+   el.classList.toggle('fix',i<fixed);
+   el.textContent=i<fixed?letters[i]:(typed[i-fixed]||'');
+   el.classList.toggle('cur',!done&&i===Math.min(fixed+typed.length,N-1)&&fixed+typed.length<N);
+  });
+  $('#wcheck').disabled=fixed+typed.length<N;
+ }
+ function showFirst(auto){
+  if(fixed)return;fixed=1;
+  if(inp.value&&norm(inp.value[0])===norm(letters[0]))inp.value=inp.value.slice(1);
+  inp.value=clean(inp.value);
+  if(!auto)run.items[run.i].hint=true;
+  $('#whint').disabled=true;paint();
+ }
+ function finish(ok){
+  done=true;inp.disabled=true;slots.forEach(el=>el.classList.remove('cur'));
+  ['#wcheck','#whint','#wskip'].forEach(id=>$(id).disabled=true);
+  if(!ok)slots.forEach((el,i)=>el.textContent=letters[i]);
+  $('#slots').classList.add(ok?'ok':'sol');
+  msg.textContent='';
+  record(ok,ok?1:0,q.answer);
+  feedback(ok,(ok?'':`La respuesta era <b>${esc(q.answer)}</b>.<br>`)+q.explain);
+ }
+ function check(){
+  if(done)return;
+  const guess=letters.slice(0,fixed).join('')+inp.value;
+  if(guess.length<N)return;
+  const g=norm(guess);
+  const hit=[q.answer,...q.alts].find(a=>norm(a)===g&&(!fixed||norm(a[0])===norm(letters[0])));
+  if(hit){if(hit!==q.answer){q.answer=hit;letters.splice(0,N,...hit.replace(/\s/g,''));}finish(true);return;}
+  tries++;
+  if(tries>=MAX){finish(false);return;}
+  const left=MAX-tries;
+  const hadFixed=fixed;
+  inp.value='';showFirst(true);
+  msg.className='wmsg bad';
+  msg.innerHTML=`«${esc(guess)}» no es correcto. Te ${left===1?'queda 1 intento':`quedan ${left} intentos`}.${hadFixed?'':' Te mostramos la primera letra.'}`;
+  inp.focus();
+ }
+ inp.addEventListener('input',()=>{inp.value=clean(inp.value);if(msg.classList.contains('bad')&&inp.value)msg.className='wmsg info';paint();});
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();check();}});
+ $('#slots').addEventListener('click',()=>inp.focus());
+ $('#wcheck').onclick=check;
+ $('#whint').onclick=()=>{showFirst(false);inp.focus();};
+ $('#wskip').onclick=()=>finish(false);
+ paint();
+ if(matchMedia('(pointer:fine)').matches)inp.focus({preventScroll:true});
 }
 function setupMatch(q){
  const pairs=Array(q.left.length).fill(null);let sel=null;
@@ -870,7 +964,7 @@ function renderResults(){
    <button class="ghost" id="change">Cambiar selección</button>
   </div>
  </section>
- ${misses.length?`<section class="panel"><h2>Para repasar</h2><ul class="miss">${misses.map(r=>{const q=r.it.q;const t=q.type==='vf'?q.statement:q.type==='match'?esc(q.prompt):esc(q.title);return `<li><div>${t}</div><div class="a">${q.type==='match'?r.correctText:esc(r.correctText)}</div></li>`;}).join('')}</ul></section>`:''}`;
+ ${misses.length?`<section class="panel"><h2>Para repasar</h2><ul class="miss">${misses.map(r=>{const q=r.it.q;const t=q.type==='vf'?q.statement:q.type==='match'?esc(q.prompt):q.type==='write'?esc(q.label):esc(q.title);return `<li><div>${t}</div><div class="a">${q.type==='match'?r.correctText:esc(r.correctText)}</div></li>`;}).join('')}</ul></section>`:''}`;
  $('#again').onclick=()=>start(sample(buckets(),st.count));
  if(misses.length)$('#fails').onclick=()=>start(shuffle(misses.map(r=>{const q=r.it.d.make();return q?{d:r.it.d,b:r.it.b,q}:null;}).filter(Boolean)));
  $('#change').onclick=()=>{run=null;renderSetup();};

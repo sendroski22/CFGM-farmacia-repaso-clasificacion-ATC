@@ -22,9 +22,10 @@ Nunca se pregunta el número de código de un grupo terapéutico: solo la letra 
 
 ## Cómo funciona
 
-- El alumnado elige qué bloques y qué sistemas quiere repasar, el tipo de pregunta (test a/b/c/d, verdadero/falso o relacionar) y el número de preguntas por intento (10, 20 o 30).
+- El alumnado elige qué bloques y qué sistemas quiere repasar, el tipo de pregunta (test a/b/c/d, verdadero/falso, relacionar o escribir el principio activo, esta última solo en el nivel 2) y el número de preguntas por intento (10, 20 o 30).
 - Cada intento selecciona preguntas al azar de un banco amplio y baraja tanto el orden como las opciones.
 - Cada respuesta se corrige al momento con una breve explicación.
+- En las preguntas de **escribir el principio activo** aparece un hueco por cada letra. Se puede pedir como pista la primera letra, hay 3 intentos (tras el primer fallo se muestra la inicial) y se puede pasar la pregunta, que cuenta como fallada. No se tienen en cuenta tildes ni mayúsculas.
 - En las preguntas de nivel 2 el sistema se mantiene oculto y se puede consultar con el botón **Pista**.
 - Al terminar se muestra la nota por bloque, las preguntas falladas y la opción de repetir solo los fallos.
 - En la pantalla de inicio, **Tus preguntas más falladas** muestra las preguntas que más le cuestan a cada alumno o alumna y permite practicarlas. Esta estadística se guarda solo en su navegador: no se envía a ningún sitio y se pierde si cambia de ordenador o borra el historial.
@@ -47,4 +48,4 @@ Todo el contenido está en el bloque `SYS`, al principio del `<script>` de `inde
 
 “Web interactiva para repasar el sistema ATC, nivel 1, nivel 2 y algunos principios activos comunes” por Pablo A. Sendra Lleó (2026), disponible bajo licencia [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es).
 
-Este material fue desarrollado con la asistencia del modelo de inteligencia artificial [Claude (Anthropic)](https://claude.ai/). 
+Este material fue desarrollado con la asistencia del modelo de inteligencia artificial [Claude (Anthropic)](https://claude.ai/).
